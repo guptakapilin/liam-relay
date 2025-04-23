@@ -65,7 +65,7 @@ app.get("/launch-action", async (req, res) => {
       if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
 
       const auth = new google.auth.GoogleAuth({
-        keyFile: "credentials.json",
+        keyFile: "/etc/secrets/credentials.json",
         scopes: ["https://www.googleapis.com/auth/drive.file"]
       });
 
