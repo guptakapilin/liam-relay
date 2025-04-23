@@ -125,6 +125,58 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
+const fs = require("fs");
+const path = require("path");
+
+app.get("/launch-action", async (req, res) => {
+  const { cmd } = req.query;
+
+  if (!cmd) return res.status(400).send("Missing 'cmd' parameter.");
+
+  try {
+    const parts = cmd.split(":");
+
+    // Support command: email-doc:to:filename:subject:body
+    if (parts[0] === "email-doc") {
+      const [, to, filename, subject, ...bodyArr] = parts;
+      const body = decodeURIComponent(bodyArr.join(":"));
+
+      const filepath = path.join(__dirname, filename || "");
+      if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASS
+        }
+      });
+
+      const mailOptions = {
+        from: process.env.GMAIL_USER,
+        to,
+        subject: decodeURIComponent(subject),
+        text: body,
+        attachments: [
+          {
+            filename: filename,
+            path: filepath
+          }
+        ]
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`Email with doc sent to: ${to}`);
+      return res.status(200).send(`Email sent to ${to}`);
+    }
+
+    res.status(400).send("Unknown command or invalid format.");
+  } catch (err) {
+    console.error("Launch-action error:", err.message);
+    res.status(500).send("Failed to execute action.");
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
