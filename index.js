@@ -1,17 +1,14 @@
-
 const express = require("express");
 const nodemailer = require("nodemailer");
 const bodyParser = require("body-parser");
 const { google } = require("googleapis");
-const { Configuration, OpenAIApi } = require("openai");
+const OpenAI = require("openai");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT;
 
 app.use(bodyParser.json());
-
-const OpenAI = require("openai");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -25,12 +22,12 @@ const oauth2Client = new google.auth.OAuth2(
 oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
+// Resolve contact email from Google Sheet
 async function resolveEmail(name) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const range = "Sheet1!A:B";
   const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range });
   const rows = response.data.values;
-
   if (!rows || rows.length === 0) return null;
 
   for (let row of rows) {
@@ -44,12 +41,12 @@ app.post("/ask-liam", async (req, res) => {
   if (!prompt || !sendTo) return res.status(400).send({ error: "Missing prompt or sendTo" });
 
   try {
-    const gptRes = await openai.createChatCompletion({
+    const gptRes = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [{ role: "user", content: prompt }]
     });
 
-    const gptReply = gptRes.data.choices[0].message.content;
+    const gptReply = gptRes.choices[0].message.content;
     const recipientEmail = await resolveEmail(sendTo);
     if (!recipientEmail) return res.status(404).send({ error: "Recipient not found in contacts sheet." });
 
