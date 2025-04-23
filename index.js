@@ -122,6 +122,20 @@ if (action === "upload-doc") {
   }
 });
 
+// === DEBUG: View raw contents of a file on server ===
+app.get("/debug-file", (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).send("Missing 'name' query param.");
+
+  const filepath = path.join(__dirname, name);
+  if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
+
+  const fileBuffer = fs.readFileSync(filepath);
+  const preview = fileBuffer.toString("base64").substring(0, 600); // show first ~400 bytes base64
+  res.send(`<pre style="white-space: pre-wrap;">Preview of ${name}:\n\n${preview}...[truncated]</pre>`);
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
