@@ -85,6 +85,46 @@ app.get("/", (req, res) => {
   res.send("Liam Phase 3 is live with GPT, Gmail, and Google Sheets integration!");
 });
 
+app.post("/send-email", async (req, res) => {
+  const { subject, body, to } = req.body;
+  if (!subject || !body || !to) {
+    return res.status(400).send({ error: "Missing subject, body, or to" });
+  }
+
+  try {
+    const recipientEmail = await resolveEmail(to);
+    if (!recipientEmail) return res.status(404).send({ error: "Recipient not found in contact sheet." });
+
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASS
+      }
+    });
+
+    const mailOptions = {
+      from: process.env.GMAIL_USER,
+      to: recipientEmail,
+      subject,
+      text: body
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).send({
+      sent: true,
+      to: recipientEmail,
+      subject
+    });
+
+  } catch (err) {
+    console.error("Email error:", err.message);
+    res.status(500).send({ error: "Failed to send email" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
