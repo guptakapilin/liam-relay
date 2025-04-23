@@ -58,38 +58,54 @@ app.get("/launch-action", async (req, res) => {
       return res.status(200).send(`Email sent to ${to}`);
     }
 
-    // === 3. Upload doc to Google Drive ===
-    if (action === "upload-doc") {
-      const [filename] = args;
-      const filepath = path.join(__dirname, filename);
-      if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
+    // === 3. Upload doc to Google Drive (Native Google Doc + Shared) ===
+if (action === "upload-doc") {
+  const [filename] = args;
+  const filepath = path.join(__dirname, filename);
+  if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
 
-      const auth = new google.auth.GoogleAuth({
-        keyFile: "/etc/secrets/credentials.json",
-        scopes: ["https://www.googleapis.com/auth/drive.file"]
-      });
+  const auth = new google.auth.GoogleAuth({
+    keyFile: "/etc/secrets/credentials.json",
+    scopes: ["https://www.googleapis.com/auth/drive"]
+  });
 
-      const driveService = google.drive({ version: "v3", auth: await auth.getClient() });
-      const fileMetadata = { name: filename };
-      const media = {
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        body: fs.createReadStream(filepath)
-      };
+  const driveService = google.drive({ version: "v3", auth: await auth.getClient() });
 
-      const file = await driveService.files.create({
-        resource: fileMetadata,
-        media,
-        fields: "id, webViewLink"
-      });
+  const fileMetadata = {
+    name: filename.replace(".docx", ""),
+    mimeType: "application/vnd.google-apps.document"
+  };
 
-      // Make the file public
-      await driveService.permissions.create({
-        fileId: file.data.id,
-        requestBody: { role: "reader", type: "anyone" }
-      });
+  const media = {
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    body: fs.createReadStream(filepath)
+  };
 
-      return res.status(200).send(`Uploaded. Link: ${file.data.webViewLink}`);
+  const file = await driveService.files.create({
+    resource: fileMetadata,
+    media,
+    fields: "id, webViewLink"
+  });
+
+  await driveService.permissions.create({
+    fileId: file.data.id,
+    requestBody: {
+      type: "anyone",
+      role: "reader"
     }
+  });
+
+  await driveService.permissions.create({
+    fileId: file.data.id,
+    requestBody: {
+      type: "user",
+      role: "writer",
+      emailAddress: "kapil@crossconnexions.com"
+    }
+  });
+
+  return res.status(200).send(`Uploaded. View: ${file.data.webViewLink}`);
+}
 
     res.status(400).send("Unknown command.");
   } catch (err) {
