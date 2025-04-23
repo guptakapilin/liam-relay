@@ -58,11 +58,31 @@ app.get("/launch-action", async (req, res) => {
       return res.status(200).send(`Email sent to ${to}`);
     }
 
-    // === 3. Upload doc to Google Drive (Native Google Doc + Shared) ===
+   // === 3. Upload doc/media/asset to Google Drive (raw, no conversion) ===
 if (action === "upload-doc") {
   const [filename] = args;
   const filepath = path.join(__dirname, filename);
   if (!fs.existsSync(filepath)) return res.status(404).send("File not found.");
+
+  // EXCLUDE unsafe extensions
+  if (filename.endsWith(".exe")) {
+    return res.status(403).send("Executable files are not allowed.");
+  }
+
+  const mimeTypeMap = {
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".mp4": "video/mp4",
+    ".zip": "application/zip",
+    ".txt": "text/plain"
+  };
+
+  const ext = path.extname(filename).toLowerCase();
+  const mimeType = mimeTypeMap[ext] || "application/octet-stream";
 
   const auth = new google.auth.GoogleAuth({
     keyFile: "/etc/secrets/credentials.json",
@@ -71,15 +91,8 @@ if (action === "upload-doc") {
 
   const driveService = google.drive({ version: "v3", auth: await auth.getClient() });
 
-  const fileMetadata = {
-    name: filename.replace(".docx", ""),
-    mimeType: "application/vnd.google-apps.document"
-  };
-
-  const media = {
-    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    body: fs.createReadStream(filepath)
-  };
+  const fileMetadata = { name: filename };
+  const media = { mimeType, body: fs.createReadStream(filepath) };
 
   const file = await driveService.files.create({
     resource: fileMetadata,
@@ -87,24 +100,19 @@ if (action === "upload-doc") {
     fields: "id, webViewLink"
   });
 
+  // Make file publicly viewable
   await driveService.permissions.create({
     fileId: file.data.id,
-    requestBody: {
-      type: "anyone",
-      role: "reader"
-    }
+    requestBody: { type: "anyone", role: "reader" }
   });
 
+  // Share with Kapil for visibility
   await driveService.permissions.create({
     fileId: file.data.id,
-    requestBody: {
-      type: "user",
-      role: "writer",
-      emailAddress: "kapil@crossconnexions.com"
-    }
+    requestBody: { type: "user", role: "writer", emailAddress: "kapil@crossconnexions.com" }
   });
 
-  return res.status(200).send(`Uploaded. View: ${file.data.webViewLink}`);
+  return res.status(200).send(`Uploaded successfully. View: ${file.data.webViewLink}`);
 }
 
     res.status(400).send("Unknown command.");
