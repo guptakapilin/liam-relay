@@ -11,9 +11,11 @@ const PORT = process.env.PORT;
 
 app.use(bodyParser.json());
 
-const openai = new OpenAIApi(new Configuration({
+const OpenAI = require("openai");
+
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
-}));
+});
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
