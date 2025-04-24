@@ -1,0 +1,17 @@
+IT Support Gantt Chart – April 2025
+
+Week 1:
+- Server Migration
+- Onboarding Support
+
+Week 2:
+- Bug Fix Sprint
+- Internal Training
+
+Week 3:
+- Monitoring & Alert Automation
+- Backup Policy Review
+
+Week 4:
+- Audit & Reporting
+- Team Feedback
