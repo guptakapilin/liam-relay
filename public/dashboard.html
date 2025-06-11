@@ -79,7 +79,7 @@
         <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
+      <button class="btn btn-secondary" onclick="()">Refresh List</button>
     </div>
 
     <!-- ───── Email Tab ───── -->
@@ -236,13 +236,30 @@ async function genRecall(){
   else recallStatus.innerText='❌ '+(j.error||'error');
   recallQuery.value='';
 }
+
 /* ---------- Memory List ---------- */
 async function loadMemories(){
-  const r=await fetch(API+'/list-memories',{headers:headers()});const d=await r.json();
-  const tbody=memoryTable.querySelector('tbody');tbody.innerHTML='';
-  d.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;tbody.appendChild(tr)});
+  /* fetch list from backend */
+  const r  = await fetch(`${API}/list-memories`, { headers: headers() });
+  const d  = await r.json();
+
+  /* clear existing rows */
+  const tbody = memoryTable.querySelector('tbody');
+  tbody.innerHTML = '';
+
+  /* rebuild table with clickable links */
+  d.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.date}</td>
+      <td><a href="${row.path}" target="_blank">${row.name}</a></td>
+      <td>${row.path}</td>
+      <td>${row.status}</td>`;
+    tbody.appendChild(tr);
+  });
 }
-/* ---------- Launch-Action ---------- */
+  
+  /* ---------- Launch-Action ---------- */
 async function runLaunchAction(){
   const a=actionSelector.value;
   let payload={action:a};
