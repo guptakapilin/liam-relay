@@ -251,6 +251,22 @@ function hmac(query) {
   return crypto.createHmac('sha256', PANEL_SECRET).update(query).digest('hex');
 }
 
+/* ---- Google Drive helper: list ZIPs in Liam Memories folder ---- */
+const DRIVE_FOLDER_ID = process.env.DRIVE_LIAM_MEMORIES;  // add in .env
+async function listDriveZips() {
+  const { google } = require('googleapis');
+  const auth = await require('@google-cloud/local-auth').getClient({
+    scopes: ['https://www.googleapis.com/auth/drive.readonly']
+  });
+  const drive = google.drive({ version: 'v3', auth });
+
+  const res = await drive.files.list({
+    q   : `'${DRIVE_FOLDER_ID}' in parents and mimeType='application/zip' and trashed=false`,
+    fields: 'files(id,name,modifiedTime)'
+  });
+  return res.data.files;        // [{id,name,modifiedTime}]
+}
+
 /* ---------- /fetch-zip  (POST) ----------
    body: { "url": "<public gdrive url>" }
 ----------------------------------------- */
@@ -363,6 +379,72 @@ app.post('/backup-memory', isAuthenticated, async (_req, res) => {
   } catch (e) {
     logEvent(`❌ backup-memory error: ${e.message}`);
     res.status(500).json({ error: e.message });
+  }
+});
+
+
+app.get('/drive-status', isAuthenticated, async (_req, res) => {
+  try {
+    const driveZips = await listDriveZips();               // all ZIPs on Drive
+
+    const log     = fs.existsSync(path.join(memoryFolder,'sync-log.json'))
+                  ? JSON.parse(fs.readFileSync(path.join(memoryFolder,'sync-log.json')))
+                  : [];
+    const ingestedIds = new Set(log.filter(e=>e.driveId).map(e=>e.driveId));
+
+    const pending = driveZips.filter(f => !ingestedIds.has(f.id));
+    const done    = driveZips.filter(f =>  ingestedIds.has(f.id));
+
+    res.json({ pending, done });
+  } catch(e){
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const streamToFile = (stream,tmp) => new Promise((res,rej)=>{
+  const file = fs.createWriteStream(tmp);
+  stream.pipe(file);
+  stream.on('error',rej); file.on('finish',res);
+});
+
+app.post('/sync-drive', isAuthenticated, async (_req, res) => {
+  try {
+    const driveZips = await listDriveZips();
+    const logPath   = path.join(memoryFolder,'sync-log.json');
+    const logArr    = fs.existsSync(logPath) ? JSON.parse(fs.readFileSync(logPath)) : [];
+    const ingested  = new Set(logArr.filter(e=>e.driveId).map(e=>e.driveId));
+
+    let imported = 0;
+    const { google } = require('googleapis');
+    const auth  = await require('@google-cloud/local-auth').getClient({
+      scopes:['https://www.googleapis.com/auth/drive.readonly']
+    });
+    const drive = google.drive({version:'v3',auth});
+
+    for (const f of driveZips){
+      if (ingested.has(f.id)) continue;              // already done
+      const tmp = path.join('uploads',`${f.id}.zip`);
+      const dl  = await drive.files.get({fileId:f.id,alt:'media'},{responseType:'stream'});
+      await streamToFile(dl.data,tmp);
+
+      /* reuse upload-memory logic: */
+      await new Promise((resolve, reject) =>{
+        const extractPath = path.join(memoryFolder, Date.now().toString());
+        fs.mkdirSync(extractPath);
+        fs.createReadStream(tmp)
+          .pipe(unzipper.Extract({ path: extractPath }))
+          .on('close', ()=> {
+            fs.unlinkSync(tmp);
+            logArr.push({ folder: extractPath, original:f.name, driveId:f.id, uploadedAt:new Date().toISOString() });
+            imported++; resolve();
+          })
+          .on('error', reject);
+      });
+    }
+    fs.writeFileSync(logPath, JSON.stringify(logArr,null,2));
+    res.json({ status:'done', imported });
+  } catch(e){
+    res.status(500).json({ error:e.message });
   }
 });
 
