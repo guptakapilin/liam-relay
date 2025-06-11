@@ -1,229 +1,164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Liam Control Panel</title>
+  <title>Liam Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f4f4f4;
-    }
-    header {
-      background: #333;
-      color: white;
-      padding: 10px 20px;
-      text-align: center;
-    }
-    nav {
-      display: flex;
-      background: #555;
-    }
-    nav button {
-      flex: 1;
-      padding: 10px;
-      background: #555;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    nav button:hover {
-      background: #777;
-    }
-    section {
-      padding: 20px;
-      display: none;
-    }
-    section.active {
-      display: block;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 8px;
-      text-align: left;
-    }
-    .status {
-      margin-top: 10px;
-      font-weight: bold;
-    }
+    body{padding:20px}
+    #dash{display:none}
+    .nav-tabs .nav-link.active{background:#0d6efd;color:#fff}
+    textarea{font-size:.9rem}
   </style>
 </head>
 <body>
-  <header>
-    <h1>🧠 Liam Control Panel</h1>
-  </header>
-  <nav>
-    <button onclick="showTab('email')">Send Email</button>
-    <button onclick="showTab('memory')">Memory Upload</button>
-    <button onclick="showTab('health')">Health Check</button>
-    <button onclick="showTab('logs')">Logs</button>
-  </nav>
 
-  <section id="email">
-    <h2>📧 Send Email</h2>
-    <input id="emailTo" placeholder="To"><br>
-    <input id="emailSubject" placeholder="Subject"><br>
-    <textarea id="emailBody" rows="5" placeholder="Body"></textarea><br>
-    <input type="checkbox" id="includeLink" onclick="toggleLinkField()"> Include optional link<br>
-    <input id="linkField" placeholder="Paste optional link" style="display:none;"><br>
-    <button onclick="sendEmail()">Send</button>
-    <div class="status" id="emailStatus"></div>
-  </section>
+<!-- ——— LOGIN ——— -->
+<div id="loginBox" class="container" style="max-width:400px">
+  <h3 class="mb-3 text-center">🔐 Liam Login</h3>
+  <input id="user"  class="form-control mb-2" placeholder="Username">
+  <input id="pass"  type="password" class="form-control mb-3" placeholder="Password">
+  <button class="btn btn-primary w-100" onclick="login()">Login</button>
+  <div id="loginErr" class="text-danger small mt-2"></div>
+</div>
 
-  <section id="memory">
-    <h2>📦 Upload Memory</h2>
-    <input type="file" id="memoryFile"><br>
-    <button onclick="uploadMemory()">Upload</button>
-    <div class="status" id="uploadStatus"></div>
+<!-- ——— DASHBOARD ——— -->
+<div id="dash" class="container">
+  <ul class="nav nav-tabs" id="mainTabs">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#emailTab">Email</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#memTab">Memory</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#healthTab">Health</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logsTab">Logs</a></li>
+  </ul>
 
-    <h3>Quick Upload</h3>
-    <input type="file" id="quickZip"><br>
-    <button onclick="quickUpload()">Quick Upload</button>
-    <div class="status" id="quickZipStatus"></div>
+  <div class="tab-content pt-3">
 
-    <button onclick="loadMemories()">🔁 Refresh List</button>
-    <table id="memoryTable">
-      <thead>
-        <tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
+    <!-- EMAIL -->
+    <div id="emailTab" class="tab-pane fade show active">
+      <h5>Compose Email</h5>
+      <input id="emailTo"       class="form-control mb-2" placeholder="To">
+      <input id="emailSubject"  class="form-control mb-2" placeholder="Subject">
+      <textarea id="emailBody"  rows="5" class="form-control mb-2" placeholder="Body"></textarea>
+      <div class="form-check mb-2">
+        <input id="incLink" type="checkbox" class="form-check-input" onchange="linkField.style.display=this.checked?'block':'none'">
+        <label class="form-check-label" for="incLink">Include link</label>
+      </div>
+      <input id="linkField" class="form-control mb-2" placeholder="https://…" style="display:none">
+      <button class="btn btn-primary" onclick="sendEmail()">Send</button>
+      <div id="emailStat" class="small mt-2"></div>
+    </div>
 
-  <section id="health">
-    <h2>🩺 System Health</h2>
-    <button onclick="checkHealth()">Ping</button>
-    <div class="status" id="healthStatus"></div>
-  </section>
+    <!-- MEMORY -->
+    <div id="memTab" class="tab-pane fade">
+      <h5>Upload Memory ZIP</h5>
+      <input type="file" id="memFile" class="form-control mb-2" accept=".zip">
+      <button class="btn btn-success" onclick="uploadMem()">Upload</button>
+      <div id="memStat" class="small mt-2"></div>
 
-  <section id="logs">
-    <h2>📜 Logs</h2>
-    <button onclick="loadLogs()">Refresh Logs</button>
-    <pre id="logOutput" style="background:#eee;padding:10px;height:300px;overflow:auto;"></pre>
-  </section>
+      <h6 class="mt-4">Parsed Files</h6>
+      <button class="btn btn-sm btn-secondary mb-2" onclick="loadMem()">Refresh List</button>
+      <table class="table table-bordered" id="memTable">
+        <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-  <script>
-    const API = '';
-    const TOKEN_KEY = 'liamToken';
+    <!-- HEALTH -->
+    <div id="healthTab" class="tab-pane fade">
+      <h5>System Health</h5>
+      <button class="btn btn-secondary mb-2" onclick="checkHealth()">Ping</button>
+      <pre id="healthOut" class="small"></pre>
+    </div>
 
-    function showTab(id){
-      document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
+    <!-- LOGS -->
+    <div id="logsTab" class="tab-pane fade">
+      <h5>CLI Logs</h5>
+      <button class="btn btn-secondary mb-2" onclick="loadLogs()">Refresh</button>
+      <pre id="logBox" class="small" style="background:#eee;height:300px;overflow:auto"></pre>
+    </div>
 
-    function headers(){
-      return { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}`, 'Content-Type': 'application/json' };
-    }
+  </div><!-- /.tab-content -->
+</div><!-- /dash -->
 
-    function toggleLinkField(){
-      const chk = document.getElementById('includeLink');
-      document.getElementById('linkField').style.display = chk.checked ? 'block' : 'none';
-    }
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const API='';                       // same origin
+const KEY='liam_token';
 
-    async function sendEmail(){
-      const to = emailTo.value.trim();
-      const subject = emailSubject.value.trim();
-      const body = emailBody.value;
-      const includeL = includeLink.checked;
-      const link = linkField.value.trim();
+/* ----- login ----- */
+async function login(){
+  const r=await fetch(API+'/auth',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({user:user.value.trim(),pass:pass.value.trim()})
+  });
+  const j=await r.json();
+  if(r.ok){
+    localStorage.setItem(KEY,j.token);
+    loginBox.style.display='none';
+    dash.style.display='block';
+    loadMem(); checkHealth(); loadLogs();
+  }else loginErr.textContent=j.error||'Login failed';
+}
 
-      if(!to || !subject || !body){
-        emailStatus.innerText = '❌ Fill To/Subject/Body';
-        return;
-      }
+/* ----- helpers ----- */
+const hdr=()=>({'Content-Type':'application/json',
+                Authorization:`Bearer ${localStorage.getItem(KEY)}`});
 
-      const payload = { to, subject, body, includeLink: includeL, link };
+/* ----- email ----- */
+async function sendEmail(){
+  const to=emailTo.value.trim(),sub=emailSubject.value.trim(),body=emailBody.value;
+  if(!to||!sub||!body){emailStat.textContent='❌ Fill all fields';return;}
+  const payload={to,subject:sub,body,includeLink:incLink.checked,link:linkField.value.trim()};
+  const r=await fetch(API+'/send-email',{method:'POST',headers:hdr(),body:JSON.stringify(payload)});
+  const j=await r.json();
+  emailStat.textContent=j.status||('❌ '+j.error);
+  if(r.ok){emailTo.value=emailSubject.value=emailBody.value=linkField.value='';incLink.checked=false;linkField.style.display='none';}
+}
 
-      const r = await fetch(API + '/send-email', {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify(payload)
-      });
+/* ----- memory upload & list ----- */
+async function uploadMem(){
+  const f=memFile.files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(KEY)}`},body:fd});
+  const j=await r.json();
+  memStat.textContent=j.status==='already_ingested' ? `🔁 ${j.zip} already in memory` : (j.status||j.error);
+  if(j.status) loadMem();
+  memFile.value='';
+}
+async function loadMem(){
+  const r=await fetch(API+'/list-memories',{headers:hdr()});
+  const d=await r.json();
+  const tb=memTable.querySelector('tbody');tb.innerHTML='';
+  if(!Array.isArray(d)){tb.innerHTML='<tr><td colspan="4">Invalid memory data</td></tr>';return;}
+  if(!d.length){tb.innerHTML='<tr><td colspan="4">Listed 0 memory files</td></tr>';return;}
+  d.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${x.date}</td><td><a href="${x.path}" target="_blank">${x.name}</a></td><td>${x.path}</td><td>${x.status}</td>`;
+    tb.appendChild(tr);
+  });
+}
 
-      const j = await r.json();
-      emailStatus.innerText = j.status || ('❌ ' + j.error);
+/* ----- health ----- */
+async function checkHealth(){
+  const r=await fetch(API+'/health',{headers:hdr()});
+  if(!r.ok){healthOut.textContent='Unauthorized';return;}
+  const j=await r.json();
+  healthOut.textContent=`🧠 Brain is live | Uptime: ${j.uptimeMinutes} min`;
+}
 
-      if(r.ok){
-        emailTo.value = '';
-        emailSubject.value = '';
-        emailBody.value = '';
-        includeLink.checked = false;
-        linkField.style.display = 'none';
-        linkField.value = '';
-      }
-    }
+/* ----- logs ----- */
+async function loadLogs(){
+  const r=await fetch(API+'/cli-logs',{headers:hdr()});
+  logBox.textContent = r.ok ? (await (await r.json()).logs.join('\n')) : 'Unauthorized';
+}
 
-    async function uploadMemory(){
-      const f = memoryFile.files[0];
-      if(!f) return alert('Choose ZIP');
-      const fd = new FormData();
-      fd.append('file', f);
-      const r = await fetch(API + '/upload-memory', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-        body: fd
-      });
-      const j = await r.json();
-      uploadStatus.innerText = j.status || j.error;
-      if(j.status) loadMemories();
-      memoryFile.value = '';
-    }
-
-    async function quickUpload(){
-      const f = quickZip.files[0];
-      if(!f) return alert('Choose ZIP');
-      const fd = new FormData();
-      fd.append('file', f);
-      const r = await fetch(API + '/upload-memory', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-        body: fd
-      });
-      const j = await r.json();
-      quickZipStatus.innerText = j.status || j.error;
-      if(j.status) loadMemories();
-      quickZip.value = '';
-    }
-
-    async function loadMemories(){
-      const r = await fetch(API + '/list-memories', { headers: headers() });
-      const d = await r.json();
-      const tbody = memoryTable.querySelector('tbody');
-      tbody.innerHTML = '';
-
-      if (!Array.isArray(d)) {
-        tbody.innerHTML = '<tr><td colspan="4">❌ Invalid memory data</td></tr>';
-        return;
-      }
-
-      d.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function checkHealth(){
-      const r = await fetch(API + '/health', { headers: headers() });
-      const j = await r.json();
-      healthStatus.innerText = `🧠 Brain is live | Uptime: ${j.uptimeMinutes} min`;
-    }
-
-    async function loadLogs(){
-      const r = await fetch(API + '/logs', { headers: headers() });
-      const t = await r.text();
-      logOutput.textContent = t;
-    }
-
-    // Auto-show email tab on load
-    showTab('email');
-  </script>
+/* ----- auto show if token ----- */
+if(localStorage.getItem(KEY)){
+  loginBox.style.display='none';
+  dash.style.display='block';
+  loadMem();checkHealth();loadLogs();
+}
+</script>
 </body>
 </html>
