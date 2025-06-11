@@ -25,8 +25,8 @@ const getAuthClient = async (scopes = []) => {
 // ✅ ENV Check Route
 app.get('/check-env', (req, res) => {
   res.json({
-    MAIL_USER: process.env.MAIL_USER || 'undefined',
-    MAIL_PASS: process.env.MAIL_PASS ? '✓ exists' : 'undefined',
+    GMAIL_USER: process.env.GMAIL_USER || 'undefined',
+    GMAIL_PASS: process.env.GMAIL_PASS ? '✓ exists' : 'undefined',
     LIAM_MEMORIES_FOLDER_ID: process.env.LIAM_MEMORIES_FOLDER_ID || 'undefined',
   });
 });
@@ -43,12 +43,12 @@ app.get('/', (req, res) => {
 app.get('/send-email', async (req, res) => {
   const to = req.query.to;
   const driveLink = req.query.link || 'https://drive.google.com/';
-  const mailUser = process.env.MAIL_USER;
-  const mailPass = process.env.MAIL_PASS;
+  const mailUser = process.env.GMAIL_USER;
+  const mailPass = process.env.GMAIL_PASS;
 
   if (!to) return res.status(400).send('Missing "to" query param.');
   if (!mailUser || !mailPass) {
-    console.error('[ENV] MAIL_USER or MAIL_PASS missing');
+    console.error('[ENV] GMAIL_USER or GMAIL_PASS missing');
     return res.status(500).send('Missing email credentials.');
   }
 
