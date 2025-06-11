@@ -4,6 +4,39 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
+const crypto = require('crypto');
+
+// Utility: Generate random token
+const generateToken = () => crypto.randomBytes(16).toString('hex');
+
+// In-memory token store (simple)
+let sessionTokens = new Set();
+
+// === /auth ===
+app.post('/auth', (req, res) => {
+  const { username, password } = req.body;
+  if (
+    username === process.env.PANEL_USER &&
+    password === process.env.PANEL_PASS
+  ) {
+    const token = generateToken();
+    sessionTokens.add(token);
+    res.status(200).json({ token });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+// Middleware to protect private routes
+const requireAuth = (req, res, next) => {
+  const token = req.headers['authorization'];
+  if (sessionTokens.has(token)) {
+    next();
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+};
+
 
 dotenv.config();
 
