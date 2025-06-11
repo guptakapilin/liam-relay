@@ -12,6 +12,10 @@ const app = express(); // ✅ Declared first before use
 app.use(express.json());
 app.use(express.static('public'));
 
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
 const PORT = process.env.PORT || 3000;
 
 // ✅ Google Auth with service account
