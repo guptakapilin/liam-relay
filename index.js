@@ -38,7 +38,7 @@ function checkEnv(){
 async function listDriveZips () {
   const { google } = require('googleapis');
   const auth = await require('@google-cloud/local-auth').getClient({
-    scopes: ['https://www.googleapis.com/auth/drive.readonly']
+    scopes: ['https://www.googleapis.com/drive.readonly']
   });
   const drive = google.drive({ version: 'v3', auth });
 
@@ -86,7 +86,9 @@ app.post('/auth', (req, res) => {
   const { user, pass } = req.body;
   if (user === process.env.PANEL_USER && pass === process.env.PANEL_PASS) {
     logEvent(`🔐 Successful login for user: ${user}`);
-    return res.json({ token: process.env.PANEL_SECRET });
+    const jwt = require('jsonwebtoken');
+const token = jwt.sign({ user }, process.env.PANEL_SECRET, { expiresIn: '7d' });
+return res.json({ token });
   } else {
     logEvent(`❌ Failed login attempt for user: ${user}`);
     return res.status(403).json({ error: 'Invalid credentials' });
