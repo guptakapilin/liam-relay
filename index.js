@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
-const { authenticate } = require('@google-cloud/local-auth');
+const { GoogleAuth } = require('google-auth-library');
 
 dotenv.config();
 const app = express();
@@ -65,13 +65,14 @@ app.get('/create-doc', async (req, res) => {
   const content = fs.readFileSync(filePath, 'utf8');
 
   try {
-    const auth = await authenticate({
-      keyfilePath: '/etc/secrets/credentials.json',
-      scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents'],
+    const auth = new GoogleAuth({
+      keyFile: '/etc/secrets/credentials.json',
+      scopes: ['https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/drive'],
     });
 
-    const docs = google.docs({ version: 'v1', auth });
-    const drive = google.drive({ version: 'v3', auth });
+    const client = await auth.getClient();
+    const docs = google.docs({ version: 'v1', auth: client });
+    const drive = google.drive({ version: 'v3', auth: client });
 
     const doc = await docs.documents.create({
       requestBody: {
@@ -112,12 +113,13 @@ app.get('/create-doc', async (req, res) => {
 // === /list-memories ===
 app.get('/list-memories', async (req, res) => {
   try {
-    const auth = await authenticate({
-      keyfilePath: '/etc/secrets/credentials.json',
+    const auth = new GoogleAuth({
+      keyFile: '/etc/secrets/credentials.json',
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
-    const drive = google.drive({ version: 'v3', auth });
+    const client = await auth.getClient();
+    const drive = google.drive({ version: 'v3', auth: client });
 
     const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
     console.log('Using Folder ID:', folderId);
@@ -128,7 +130,6 @@ app.get('/list-memories', async (req, res) => {
       orderBy: 'modifiedTime desc',
     });
 
-    console.log('Files retrieved:', response.data.files);
     return res.status(200).json({ files: response.data.files });
   } catch (err) {
     console.error('🔥 Detailed list error:', err);
@@ -145,12 +146,13 @@ app.post('/upload-drive', async (req, res) => {
   }
 
   try {
-    const auth = await authenticate({
-      keyfilePath: '/etc/secrets/credentials.json',
+    const auth = new GoogleAuth({
+      keyFile: '/etc/secrets/credentials.json',
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
 
-    const drive = google.drive({ version: 'v3', auth });
+    const client = await auth.getClient();
+    const drive = google.drive({ version: 'v3', auth: client });
 
     const fileMetadata = {
       name: fileName,
@@ -179,7 +181,7 @@ app.post('/upload-drive', async (req, res) => {
   }
 });
 
-// === /ping and root ===
+// === Health Routes ===
 app.get('/ping', (req, res) => {
   return res.status(200).send('Liam is alive. 🧠');
 });
