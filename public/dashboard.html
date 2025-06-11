@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<!-- ────────── Login ────────── -->
+<!-- ─── Login ─────────────────────────── -->
 <div id="login-section" class="container">
   <h3 class="mb-3">Liam Panel Login</h3>
   <input id="username" class="form-control mb-2" placeholder="Username"/>
@@ -23,7 +23,7 @@
   <div id="login-error" class="text-danger mt-2"></div>
 </div>
 
-<!-- ────────── Dashboard ────────── -->
+<!-- ─── Dashboard ─────────────────────── -->
 <div id="dashboard-section" class="token-protected container">
   <ul class="nav nav-tabs">
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory</a></li>
@@ -34,15 +34,15 @@
   </ul>
 
   <div class="tab-content">
-
-    <!-- ───── Memory Tab ───── -->
+    <!-- ─ Memory Tab ─ -->
     <div id="memory" class="tab-pane fade show active">
+
       <h5 class="mt-3">Upload Memory ZIP (local picker)</h5>
       <input id="memoryFile" type="file" class="form-control mb-2" accept=".zip"/>
       <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
       <div id="uploadStatus" class="small mt-2"></div>
 
-      <!-- Quick Upload (share-sheet) -->
+      <!-- Quick Upload -->
       <div class="card mt-4"><div class="card-body">
         <h6 class="card-title">Quick Upload (Mail Export ZIP)</h6>
         <input id="quickZip" type="file" accept=".zip" class="form-control mb-2"/>
@@ -50,7 +50,7 @@
         <div id="quickZipStatus" class="small mt-2"></div>
       </div></div>
 
-      <!-- Fetch from Google Drive -->
+      <!-- Fetch from Drive -->
       <div class="card mt-4"><div class="card-body">
         <h6 class="card-title">Fetch ZIP (Google Drive Link)</h6>
         <input id="driveZipUrl" type="url" class="form-control mb-2" placeholder="https://drive.google.com/..."/>
@@ -58,16 +58,24 @@
         <div id="fetchStatus" class="small mt-2"></div>
       </div></div>
 
-      <!-- Backup to Drive -->
+      <!-- Drive Sync -->
+      <div class="card mt-4"><div class="card-body">
+        <h6 class="card-title">Drive Sync Overview</h6>
+        <p id="driveSummary" class="small">Loading…</p>
+        <button class="btn btn-primary" onclick="syncDrive()">Sync Pending ZIPs</button>
+        <div id="driveSyncStatus" class="small mt-2"></div>
+      </div></div>
+
+      <!-- Backup -->
       <div class="card mt-4"><div class="card-body">
         <h6 class="card-title">Backup Latest Memory → Drive</h6>
         <button class="btn btn-warning" onclick="backupMem()">Backup Now</button>
         <div id="backupStatus" class="small mt-2"></div>
       </div></div>
 
-      <!-- Recall Link Generator -->
+      <!-- Recall Link -->
       <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Generate Recall Link (paste into ChatGPT)</h6>
+        <h6 class="card-title">Generate Recall Link (paste in ChatGPT)</h6>
         <textarea id="recallQuery" rows="2" class="form-control mb-2" placeholder="Type query text…"></textarea>
         <button class="btn btn-info" onclick="genRecall()">Copy Link</button>
         <div id="recallStatus" class="small mt-2"></div>
@@ -79,28 +87,25 @@
         <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button class="btn btn-secondary" onclick="()">Refresh List</button>
+      <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
     </div>
 
-    <!-- ───── Email Tab ───── -->
-<div id="email" class="tab-pane fade">
-  <h5 class="mt-3">Compose Email</h5>
-  <input id="emailTo" type="email" class="form-control mb-2" placeholder="Recipient Email"/>
-  <input id="emailSubject" class="form-control mb-2" placeholder="Subject"/>
-  <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
+    <!-- ─ Email Tab ─ -->
+    <div id="email" class="tab-pane fade">
+      <h5 class="mt-3">Compose Email</h5>
+      <input id="emailTo" type="email" class="form-control mb-2" placeholder="Recipient Email"/>
+      <input id="emailSubject" class="form-control mb-2" placeholder="Subject"/>
+      <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
+      <div class="form-check mb-2">
+        <input id="includeLink" type="checkbox" class="form-check-input" onchange="toggleLinkBox()"/>
+        <label class="form-check-label" for="includeLink">Include Optional Link</label>
+      </div>
+      <input id="linkField" class="form-control mb-2" placeholder="https://…" style="display:none"/>
+      <button type="button" class="btn btn-primary" onclick="sendEmail()">Send Email</button>
+      <div id="emailStatus" class="small mt-2"></div>
+    </div>
 
-  <div class="form-check mb-2">
-    <input id="includeLink" type="checkbox" class="form-check-input" onchange="toggleLinkBox()"/>
-    <label class="form-check-label" for="includeLink">Include Optional Link</label>
-  </div>
-
-  <input id="linkField" class="form-control mb-2" placeholder="https://..." style="display:none"/>
-
-  <button type="button" class="btn btn-primary" onclick="sendEmail()">Send Email</button>
-  <div id="emailStatus" class="small mt-2"></div>
-</div>
-
-    <!-- ───── Launch Action Tab ───── -->
+    <!-- ─ Launch Tab ─ -->
     <div id="launch" class="tab-pane fade">
       <h5 class="mt-3">Run Quick Action</h5>
       <select id="actionSelector" class="form-select mb-2">
@@ -111,167 +116,153 @@
       <pre id="launchResult" class="small mt-3"></pre>
     </div>
 
-    <!-- ───── Health Tab ───── -->
+    <!-- ─ Health Tab ─ -->
     <div id="health" class="tab-pane fade">
       <h5 class="mt-3">Backend Status</h5>
       <pre id="healthStatus" class="small">Loading…</pre>
       <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
     </div>
 
-    <!-- ───── Logs Tab ───── -->
+    <!-- ─ Logs Tab ─ -->
     <div id="logs" class="tab-pane fade">
       <h5 class="mt-3">Recent CLI Logs</h5>
       <pre id="cliLogs" class="small">Loading…</pre>
       <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
     </div>
-
   </div><!-- /.tab-content -->
-</div><!-- /#dashboard-section -->
+</div><!-- /dashboard -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-/* ---------- Helper Basics ---------- */
-const API            = location.origin;
-const TOKEN_KEY      = 'liam_token';
-const headers        = () => ({'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`});
-const showDashboard  = () => {document.getElementById('login-section').style.display='none';document.getElementById('dashboard-section').style.display='block';loadMemories();loadHealth();loadLogs();};
+/* ----- Helper Basics ----- */
+const API       = location.origin;
+const TOKEN_KEY = 'liam_token';
+const headers   = () => ({'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`});
 
+function showDashboard(){
+  login_section.style.display = 'none';
+  dashboard_section.style.display = 'block';
+  loadMemories(); loadHealth(); loadLogs(); loadDriveStatus();
+}
 async function login(){
-  const body={username:username.value,password:password.value};
+  const body ={username:username.value,password:password.value};
   const r=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(r.ok){const {token}=await r.json();localStorage.setItem(TOKEN_KEY,token);showDashboard();}
   else login_error.innerText='Invalid credentials.';
 }
 
-  function toggleLinkBox(){
-  linkField.style.display = includeLink.checked ? 'block' : 'none';
-}
-
-async function sendEmail(){
-  const to        = emailTo.value.trim();
-  const subject   = emailSubject.value.trim();
-  const body      = emailBody.value;
-  const includeL  = includeLink.checked;
-  const link      = linkField.value.trim();
-
-  if(!to||!subject||!body){ emailStatus.innerText='❌ Fill To/Subject/Body'; return; }
-
-  const payload = { to, subject, body, includeLink: includeL, link };
-
-  const r  = await fetch(API+'/send-email',{method:'POST',headers:headers(),body:JSON.stringify(payload)});
-  const j  = await r.json();
-  emailStatus.innerText = j.status||('❌ '+j.error);
-
-  /* Clear all fields on success */
-  if(r.ok){
-    emailTo.value=''; emailSubject.value=''; emailBody.value='';
-    includeLink.checked=false; linkField.style.display='none'; linkField.value='';
-  }
-}
-
-/* ---------- Memory Upload ---------- */
+/* ----- Memory Upload ----- */
 async function uploadMemory(){
-  const f = memoryFile.files[0];
-  if (!f) return alert('Choose ZIP');
-
-  const fd = new FormData();
-  fd.append('file', f);
-
-  const r = await fetch(`${API}/upload-memory`, {
-    method : 'POST',
-    headers: { Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-    body   : fd
-  });
-  const j = await r.json();
-
-  if (j.status === 'already_ingested'){
-    uploadStatus.innerText = `🔁 ${j.zip} already in memory`;
-  } else {
-    uploadStatus.innerText = j.status || ('❌ '+j.error);
-    if (j.status) loadMemories();
-  }
+  const f=memoryFile.files[0]; if(!f) return alert('Choose ZIP');
+  const fd=new FormData(); fd.append('file',f);
+  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
+  const j=await r.json();
+  if(j.status==='already_ingested') uploadStatus.innerText=`🔁 ${j.zip} already in memory`;
+  else  { uploadStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories();}
   memoryFile.value='';
 }
-
 async function quickUpload(){
-  const f = quickZip.files[0];
-  if (!f) return alert('Choose ZIP');
-
-  const fd = new FormData();
-  fd.append('file', f);
-
-  const r = await fetch(`${API}/upload-memory`, {
-    method : 'POST',
-    headers: { Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}` },
-    body   : fd
-  });
-  const j = await r.json();
-
-  if (j.status === 'already_ingested'){
-    quickZipStatus.innerText = `🔁 ${j.zip} already in memory`;
-  } else {
-    quickZipStatus.innerText = j.status || ('❌ '+j.error);
-    if (j.status) loadMemories();
-  }
+  const f=quickZip.files[0]; if(!f) return alert('Choose ZIP');
+  const fd=new FormData(); fd.append('file',f);
+  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
+  const j=await r.json();
+  if(j.status==='already_ingested') quickZipStatus.innerText=`🔁 ${j.zip} already in memory`;
+  else { quickZipStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories();}
   quickZip.value='';
 }
-  
-  /* ---------- Drive ZIP Fetch ---------- */
 async function fetchZip(){
-  const url=driveZipUrl.value.trim();if(!url)return;
+  const url=driveZipUrl.value.trim(); if(!url) return;
   const r=await fetch(API+'/fetch-zip',{method:'POST',headers:headers(),body:JSON.stringify({url})});
-  const j=await r.json();fetchStatus.innerText=j.status||j.error;if(j.status)loadMemories();driveZipUrl.value='';
+  const j=await r.json();
+  if(j.status==='already_ingested') fetchStatus.innerText=`🔁 ${j.zip} already in memory`;
+  else { fetchStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories(); }
+  driveZipUrl.value='';
 }
-/* ---------- Backup ---------- */
 async function backupMem(){
+  backupStatus.innerText='⏳ backing up…';
   const r=await fetch(API+'/backup-memory',{method:'POST',headers:headers()});
-  const j=await r.json();backupStatus.innerText=j.status||j.error;
+  const j=await r.json();
+  backupStatus.innerText=j.status||('❌ '+j.error);
 }
-/* ---------- Recall Link ---------- */
+
+/* ----- Drive Sync ----- */
+async function loadDriveStatus(){
+  const r=await fetch(API+'/drive-status',{headers:headers()});
+  const j=await r.json();
+  if(j.error){ driveSummary.innerText='❌ Drive status error'; console.error(j.error); return;}
+  driveSummary.innerText=
+    `On Drive: ${j.done.length+j.pending.length}\nAlready ingested: ${j.done.length}\nPending: ${j.pending.length}`;
+}
+async function syncDrive(){
+  driveSyncStatus.innerText='⏳ Syncing…';
+  const r=await fetch(API+'/sync-drive',{method:'POST',headers:headers()});
+  const j=await r.json();
+  if(j.error){ driveSyncStatus.innerText='❌ '+j.error; console.error(j.error); return;}
+  driveSyncStatus.innerText=`✅ Imported ${j.imported} new ZIP(s)`;
+  loadMemories(); loadDriveStatus();
+}
+
+/* ----- Recall Link ----- */
 async function genRecall(){
-  const q=recallQuery.value.trim();if(!q)return;
+  const q=recallQuery.value.trim(); if(!q) return;
   const r=await fetch(API+'/generate-recall-link',{method:'POST',headers:headers(),body:JSON.stringify({query:q})});
   const j=await r.json();
-  if(j.link){await navigator.clipboard.writeText(j.link);recallStatus.innerText='🔗 Link copied to clipboard';}
-  else recallStatus.innerText='❌ '+(j.error||'error');
+  if(j.link){ await navigator.clipboard.writeText(j.link); recallStatus.innerText='🔗 Link copied'; }
+  else       recallStatus.innerText='❌ '+(j.error||'error');
   recallQuery.value='';
 }
 
-/* ---------- Memory List ---------- */
+/* ----- Memory List ----- */
 async function loadMemories(){
-  /* fetch list from backend */
-  const r  = await fetch(`${API}/list-memories`, { headers: headers() });
-  const d  = await r.json();
-
-  /* clear existing rows */
-  const tbody = memoryTable.querySelector('tbody');
-  tbody.innerHTML = '';
-
-  /* rebuild table with clickable links */
-  d.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.date}</td>
-      <td><a href="${row.path}" target="_blank">${row.name}</a></td>
-      <td>${row.path}</td>
-      <td>${row.status}</td>`;
+  const r=await fetch(API+'/list-memories',{headers:headers()});
+  const d=await r.json();
+  const table=document.getElementById('memoryTable');
+  const tbody=table.querySelector('tbody');
+  tbody.innerHTML='';
+  if(d.length===0){
+    tbody.innerHTML='<tr><td colspan="4" class="text-center">Listed 0 memory files</td></tr>';
+    return;
+  }
+  d.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${x.date}</td><td><a href="${x.path}" target="_blank">${x.name}</a></td><td>${x.path}</td><td>${x.status}</td>`;
     tbody.appendChild(tr);
   });
 }
-  
-  /* ---------- Launch-Action ---------- */
+
+/* ----- Email helpers ----- */
+function toggleLinkBox(){ linkField.style.display=includeLink.checked?'block':'none'; }
+async function sendEmail(){
+  const to=emailTo.value.trim(),subject=emailSubject.value.trim(),body=emailBody.value;
+  if(!to||!subject||!body){ emailStatus.innerText='❌ Fill To/Subject/Body'; return;}
+  const payload={
+    to, subject, body,
+    includeLink:includeLink.checked,
+    link       :linkField.value.trim()
+  };
+  try{
+    const r=await fetch(`${API}/send-email`,{method:'POST',headers:headers(),body:JSON.stringify(payload)});
+    const j=await r.json();
+    emailStatus.innerText=j.status||('❌ '+j.error);
+    if(r.ok){ emailTo.value=''; emailSubject.value=''; emailBody.value=''; includeLink.checked=false; linkField.value=''; linkField.style.display='none'; }
+  }catch(e){ emailStatus.innerText='❌ Network error'; console.error(e);}
+}
+
+/* ----- Launch Action ----- */
 async function runLaunchAction(){
   const a=actionSelector.value;
-  let payload={action:a};
-  if(a==='send-email'){payload.data={to:'guptakapilin@gmail.com',subject:'Liam Launch Email',body:'Sent via launch-action tab',includeLink:true};}
+  const payload=a==='send-email'
+    ?{action:a,data:{to:'guptakapilin@gmail.com',subject:'Liam launch email',body:'Sent via launch-action tab',includeLink:true}}
+    :{action:a};
   const r=await fetch(API+'/launch-action',{method:'POST',headers:headers(),body:JSON.stringify(payload)});
-  const j=await r.json();launchResult.innerText=JSON.stringify(j,null,2);
+  const j=await r.json(); launchResult.innerText=JSON.stringify(j,null,2);
 }
-/* ---------- Health / Logs ---------- */
-async function loadHealth(){const j=await(await fetch(API+'/health',{headers:headers()})).json();healthStatus.innerText=JSON.stringify(j,null,2);}
-async function loadLogs(){const j=await(await fetch(API+'/cli-logs',{headers:headers()})).json();cliLogs.innerText=j.logs.join('\n');}
 
-/* ---------- Auto-login if token exists ---------- */
+/* ----- Health / Logs ----- */
+async function loadHealth(){ const j=await(await fetch(API+'/health',{headers:headers()})).json(); healthStatus.innerText=JSON.stringify(j,null,2);}
+async function loadLogs(){ const j=await(await fetch(API+'/cli-logs',{headers:headers()})).json(); cliLogs.innerText=j.logs.join('\n');}
+
+/* Auto-login */
 if(localStorage.getItem(TOKEN_KEY)) showDashboard();
 </script>
 </body>
