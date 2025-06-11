@@ -1,17 +1,55 @@
-{
-  "lastUpdated": "2025-06-11T10:13:43.677558Z",
-  "agents": {
-    "Liam": {
-      "archives": [],
-      "unifiedFolderId": "1CFOWeCjFMZO8uiZTJVYLAAxqU_N7MvVX"
+const fs = require('fs');
+const path = require('path');
+
+const SYNC_LOG_PATH = path.join(__dirname, 'sync-log.json');
+
+let syncLog = {
+  lastUpdated: new Date().toISOString(),
+  agents: {
+    Liam: {
+      archives: [],
+      unifiedFolderId: process.env.LiamUnified || '',
     },
-    "Eva": {
-      "archives": [],
-      "unifiedFolderId": "1kj6O-Ty_p7dzTn_uZF5itgfLBDZQ8qvn"
+    Eva: {
+      archives: [],
+      unifiedFolderId: process.env.EvaUnified || '',
     },
-    "Radhika": {
-      "archives": [],
-      "unifiedFolderId": "16iN3R87PfJzMYKYKrJR-dSt-JmEJEA2s"
-    }
+    Radhika: {
+      archives: [],
+      unifiedFolderId: process.env.RadhikaUnified || '',
+    },
+  },
+};
+
+// ✅ Load sync log from disk or fallback to ENV
+const loadSyncLog = () => {
+  try {
+    const raw = fs.readFileSync(SYNC_LOG_PATH, 'utf8');
+    syncLog = JSON.parse(raw);
+    console.log('✅ Loaded sync-log.json');
+  } catch (err) {
+    console.warn('⚠️ sync-log.json not found. Using fallback ENV values.');
   }
-}
+};
+
+// ✅ Save sync log to disk
+const saveSyncLog = () => {
+  syncLog.lastUpdated = new Date().toISOString();
+  fs.writeFileSync(SYNC_LOG_PATH, JSON.stringify(syncLog, null, 2), 'utf8');
+  console.log('💾 sync-log.json updated');
+};
+
+// ✅ Get all agent info
+const getSyncLog = () => syncLog;
+
+// ✅ Utility: Get Unified Folder ID for agent
+const getUnifiedFolderId = (agent) => {
+  return syncLog.agents[agent]?.unifiedFolderId || '';
+};
+
+module.exports = {
+  loadSyncLog,
+  saveSyncLog,
+  getSyncLog,
+  getUnifiedFolderId,
+};
