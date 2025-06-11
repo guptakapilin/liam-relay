@@ -9,14 +9,14 @@
     body{padding:24px;background:#f6f8fa;}
     #dash{display:none}
     .nav-tabs .nav-link.active{background:#0d6efd;color:#fff}
-    .card{box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .card{box-shadow:0 1px 3px rgba(0,0,0,.08)}
     pre,textarea{font-size:.9rem}
     .env-ok{color:#28a745;font-weight:600}
     .env-miss{color:#dc3545;font-weight:600}
   </style>
 </head>
 <body>
-<!-- ─── Login ──────────────────────────────────────────── -->
+<!-- LOGIN -->
 <div id="loginBox" class="container" style="max-width:380px">
   <h3 class="text-center mb-3">🔐 Liam Login</h3>
   <input id="user" class="form-control mb-2" placeholder="Username">
@@ -25,63 +25,62 @@
   <div id="loginErr" class="text-danger small mt-2"></div>
 </div>
 
-<!-- ─── Dashboard ──────────────────────────────────────── -->
+<!-- DASHBOARD -->
 <div id="dash" class="container">
   <ul class="nav nav-tabs" id="mainTabs">
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#emailTab">Email</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#memTab">Memory</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#launchTab">Launch Action</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#healthTab">Health</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logsTab">Logs</a></li>
+    <li class="nav-item"><a class="nav-link" onclick="showTab('emailTab')" href="#emailTab">Email</a></li>
+    <li class="nav-item"><a class="nav-link" onclick="showTab('memTab')"   href="#memTab">Memory</a></li>
+    <li class="nav-item"><a class="nav-link" onclick="showTab('launchTab')" href="#launchTab">Launch</a></li>
+    <li class="nav-item"><a class="nav-link active" onclick="showTab('healthTab')" href="#healthTab">Health</a></li>
+    <li class="nav-item"><a class="nav-link" onclick="showTab('logsTab')"  href="#logsTab">Logs</a></li>
   </ul>
 
   <div class="tab-content pt-3">
-
-    <!-- EMAIL ------------------------------------------------------------- -->
-    <div id="emailTab" class="tab-pane fade show active">
+    <!-- EMAIL -->
+    <div id="emailTab" class="tab-pane fade">
       <div class="card p-3">
-        <h5 class="mb-3">Compose Email</h5>
-        <input id="emailTo"       class="form-control mb-2" placeholder="Recipient email">
-        <input id="emailSubject"  class="form-control mb-2" placeholder="Subject">
-        <textarea id="emailBody"  rows="5" class="form-control mb-2" placeholder="Body"></textarea>
+        <h5>Compose Email</h5>
+        <input id="emailTo"      class="form-control mb-2" placeholder="Recipient">
+        <input id="emailSubject" class="form-control mb-2" placeholder="Subject">
+        <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body"></textarea>
         <div class="form-check mb-2">
-          <input id="incLink" type="checkbox" class="form-check-input" onchange="linkField.classList.toggle('d-none',!this.checked)">
-          <label class="form-check-label" for="incLink">Include optional link</label>
+          <input id="incLink" type="checkbox" class="form-check-input"
+                 onchange="linkField.classList.toggle('d-none',!this.checked)">
+          <label class="form-check-label" for="incLink">Include link</label>
         </div>
-        <input id="linkField" class="form-control mb-3 d-none" placeholder="https://...">
-        <button class="btn btn-primary" onclick="sendEmail()">Send Email</button>
+        <input id="linkField" class="form-control mb-3 d-none" placeholder="https://…">
+        <button class="btn btn-primary" onclick="sendEmail()">Send</button>
         <div id="emailStat" class="small mt-2"></div>
       </div>
     </div>
 
-    <!-- MEMORY ------------------------------------------------------------ -->
+    <!-- MEMORY -->
     <div id="memTab" class="tab-pane fade">
       <div class="row g-3">
-
         <div class="col-lg-6">
           <div class="card p-3 h-100">
-            <h6>Upload Memory ZIP</h6>
+            <h6>Upload ZIP</h6>
             <input type="file" id="memFile" class="form-control mb-2" accept=".zip">
             <button class="btn btn-success" onclick="uploadMem()">Upload</button>
             <div id="memStat" class="small mt-2"></div>
 
             <h6 class="mt-3">Quick Upload</h6>
             <input type="file" id="quickZip" class="form-control mb-2" accept=".zip">
-            <button class="btn btn-success" onclick="quickUpload()">Quick Upload</button>
+            <button class="btn btn-success" onclick="quickUpload()">Quick</button>
             <div id="quickZipStat" class="small mt-2"></div>
           </div>
         </div>
 
         <div class="col-lg-6">
           <div class="card p-3 h-100">
-            <h6>Drive Sync Overview</h6>
+            <h6>Drive Sync</h6>
             <p id="driveSum" class="small">Loading…</p>
-            <button class="btn btn-primary btn-sm" onclick="syncDrive()">Sync Pending ZIPs</button>
+            <button class="btn btn-sm btn-primary" onclick="syncDrive()">Sync pending ZIPs</button>
             <div id="driveSyncStat" class="small mt-2"></div>
 
-            <h6 class="mt-3">Generate Recall-Link</h6>
-            <textarea id="recQuery" rows="2" class="form-control mb-2" placeholder="Query text…"></textarea>
-            <button class="btn btn-info btn-sm" onclick="genRecall()">Copy Link</button>
+            <h6 class="mt-3">Recall-Link</h6>
+            <textarea id="recQuery" rows="2" class="form-control mb-2" placeholder="Query…"></textarea>
+            <button class="btn btn-sm btn-info" onclick="genRecall()">Copy link</button>
             <div id="recStat" class="small mt-2"></div>
           </div>
         </div>
@@ -95,43 +94,49 @@
       </table>
     </div>
 
-    <!-- LAUNCH ACTION ----------------------------------------------------- -->
+    <!-- LAUNCH -->
     <div id="launchTab" class="tab-pane fade">
       <div class="card p-3">
         <h6>Quick Launch</h6>
         <select id="actionSel" class="form-select mb-2" style="max-width:220px">
           <option value="ping">Ping Server</option>
-          <option value="send-email">Send sample email</option>
+          <option value="send-email">Send test email</option>
         </select>
         <button class="btn btn-warning" onclick="runLaunch()">Launch</button>
         <pre id="launchOut" class="small mt-3"></pre>
       </div>
     </div>
 
-    <!-- HEALTH ------------------------------------------------------------ -->
-    <div id="healthTab" class="tab-pane fade">
-      <button class="btn btn-secondary mb-2" onclick="checkHealth()">Run Health Check</button>
+    <!-- HEALTH (default active) -->
+    <div id="healthTab" class="tab-pane fade show active">
+      <button class="btn btn-secondary mb-2" onclick="checkHealth()">Run check</button>
       <pre id="healthOut" class="small"></pre>
     </div>
 
-    <!-- LOGS -------------------------------------------------------------- -->
+    <!-- LOGS -->
     <div id="logsTab" class="tab-pane fade">
-      <button class="btn btn-secondary mb-2" onclick="loadLogs()">Refresh Logs</button>
+      <button class="btn btn-secondary mb-2" onclick="loadLogs()">Refresh logs</button>
       <pre id="logBox" class="small" style="background:#eee;height:300px;overflow:auto"></pre>
     </div>
 
   </div><!-- /.tab-content -->
-</div><!-- /#dash -->
+</div><!-- /dash -->
 
-<!-- ——— Eruda debug console (toggle via gear icon) ——— -->
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
+<!-- Eruda console -->
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
 
 <script>
+/* -------------------------------- Basics ------------------------------- */
 const API=''; const KEY='liam_token';
-
-/* ----- helpers ----- */
 const hdr=()=>({'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem(KEY)}`});
+
+/* ----- tab handler (ensures click works everywhere) ----- */
+function showTab(id){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('show','active'));
+  document.getElementById(id).classList.add('show','active');
+  document.querySelectorAll('#mainTabs .nav-link').forEach(a=>a.classList.remove('active'));
+  document.querySelector(`#mainTabs .nav-link[href="#${id}"]`).classList.add('active');
+}
 
 /* ----- login ----- */
 async function login(){
@@ -140,61 +145,62 @@ async function login(){
   if(r.ok){
     localStorage.setItem(KEY,j.token);
     loginBox.style.display='none'; dash.style.display='block';
-    loadMem(); loadDrive(); checkHealth(); loadLogs();
+    showTab('healthTab'); loadMem(); loadDrive(); checkHealth(); loadLogs();
   }else loginErr.textContent=j.error||'Login failed';
 }
 
 /* ----- email ----- */
 async function sendEmail(){
-  const to=emailTo.value.trim(),sub=emailSubject.value.trim(),body=emailBody.value;
-  if(!to||!sub||!body){
-    emailStat.textContent=`❌ Missing: ${!to?'To ':''}${!sub?'Subject ':''}${!body?'Body':''}`; return;
-  }
-  const payload={to,subject:sub,body,includeLink:incLink.checked,link:linkField.value.trim()};
+  const missing=[];
+  if(!emailTo.value.trim())      missing.push('To');
+  if(!emailSubject.value.trim()) missing.push('Subject');
+  if(!emailBody.value)           missing.push('Body');
+  if(missing.length){emailStat.textContent=`❌ Missing: ${missing.join(', ')}`;return;}
+
+  const payload={to:emailTo.value.trim(),subject:emailSubject.value.trim(),body:emailBody.value,
+                 includeLink:incLink.checked,link:linkField.value.trim()};
+
   const r=await fetch(API+'/send-email',{method:'POST',headers:hdr(),body:JSON.stringify(payload)});
   const j=await r.json();
   emailStat.textContent=j.status||('❌ '+j.error);
   if(r.ok){emailTo.value=emailSubject.value=emailBody.value=linkField.value='';incLink.checked=false;linkField.classList.add('d-none');}
 }
 
-/* ----- memory upload/list ----- */
+/* ----- memory upload & list ----- */
 async function uploadMem(){
-  const f=memFile.files[0]; if(!f){memStat.textContent='Choose ZIP';return;}
+  const f=memFile.files[0]; if(!f){memStat.textContent='Select ZIP';return;}
   const fd=new FormData();fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(KEY)}`},body:fd});
-  const j=await r.json(); memStat.textContent=j.status==='already_ingested'?`🔁 ${j.zip} already in memory`:(j.status||j.error);
+  const j=await (await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(KEY)}`},body:fd})).json();
+  memStat.textContent=j.status==='already_ingested'?`🔁 ${j.zip} already in memory`:(j.status||j.error);
   if(j.status) loadMem(); memFile.value='';
 }
 async function quickUpload(){
-  const f=quickZip.files[0]; if(!f){quickZipStat.textContent='Choose ZIP';return;}
+  const f=quickZip.files[0]; if(!f){quickZipStat.textContent='Select ZIP';return;}
   const fd=new FormData();fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(KEY)}`},body:fd});
-  const j=await r.json(); quickZipStat.textContent=j.status==='already_ingested'?`🔁 ${j.zip} already in memory`:(j.status||j.error);
+  const j=await (await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(KEY)}`},body:fd})).json();
+  quickZipStat.textContent=j.status==='already_ingested'?`🔁 ${j.zip} already in memory`:(j.status||j.error);
   if(j.status) loadMem(); quickZip.value='';
 }
 async function loadMem(){
-  const r=await fetch(API+'/list-memories',{headers:hdr()});
-  const d=await r.json(); const tb=memTable.querySelector('tbody'); tb.innerHTML='';
-  if(!Array.isArray(d)){tb.innerHTML='<tr><td colspan="4">Invalid data</td></tr>';return;}
-  if(!d.length){tb.innerHTML='<tr><td colspan="4">No files</td></tr>';return;}
-  d.forEach(x=>{
+  const j=await (await fetch(API+'/list-memories',{headers:hdr()})).json();
+  const tb=memTable.querySelector('tbody'); tb.innerHTML='';
+  if(!Array.isArray(j)){tb.innerHTML='<tr><td colspan="4">Invalid data</td></tr>';return;}
+  if(!j.length){tb.innerHTML='<tr><td colspan="4">No files</td></tr>';return;}
+  j.forEach(x=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${x.date}</td><td><a href="${x.path}" target="_blank">${x.name}</a></td><td>${x.path}</td><td>${x.status}</td>`;
     tb.appendChild(tr);
   });
 }
 
-/* ----- drive sync ----- */
+/* ----- drive ----- */
 async function loadDrive(){
-  const r=await fetch(API+'/drive-status',{headers:hdr()});
-  const j=await r.json();
-  if(j.error){driveSum.textContent='Drive status error';return;}
-  driveSum.textContent=`On Drive: ${j.done.length+j.pending.length}\nAlready: ${j.done.length}\nPending: ${j.pending.length}`;
+  const j=await (await fetch(API+'/drive-status',{headers:hdr()})).json();
+  driveSum.textContent=j.error?'Drive error':`On Drive ${j.done.length+j.pending.length} | Already ${j.done.length} | Pending ${j.pending.length}`;
 }
 async function syncDrive(){
   driveSyncStat.textContent='⏳ Syncing…';
-  const r=await fetch(API+'/sync-drive',{method:'POST',headers:hdr()});
-  const j=await r.json();
+  const j=await (await fetch(API+'/sync-drive',{method:'POST',headers:hdr()})).json();
   driveSyncStat.textContent=j.error?('❌ '+j.error):`✅ Imported ${j.imported} ZIP(s)`;
   if(!j.error){loadMem();loadDrive();}
 }
@@ -202,44 +208,34 @@ async function syncDrive(){
 /* ----- recall link ----- */
 async function genRecall(){
   const q=recQuery.value.trim(); if(!q)return;
-  const r=await fetch(API+'/generate-recall-link',{method:'POST',headers:hdr(),body:JSON.stringify({query:q})});
-  const j=await r.json();
-  if(j.link){await navigator.clipboard.writeText(j.link);recStat.textContent='🔗 Copied';}
-  else      recStat.textContent='❌ '+(j.error||'error');
+  const j=await (await fetch(API+'/generate-recall-link',{method:'POST',headers:hdr(),body:JSON.stringify({query:q})})).json();
+  if(j.link){await navigator.clipboard.writeText(j.link);recStat.textContent='Copied link';}else recStat.textContent='❌ '+(j.error||'error');
   recQuery.value='';
 }
 
-/* ----- launch action ----- */
+/* ----- launch ----- */
 async function runLaunch(){
   const a=actionSel.value;
-  const payload=a==='send-email'
-    ?{action:a,data:{to:'test@example.com',subject:'Launch email',body:'Sent via launch',includeLink:false}}
-    :{action:a};
-  const r=await fetch(API+'/launch-action',{method:'POST',headers:hdr(),body:JSON.stringify(payload)});
-  const j=await r.json(); launchOut.textContent=JSON.stringify(j,null,2);
+  const payload=a==='send-email'?{action:a,data:{to:'test@example.com',subject:'Launch test',body:'Hi',includeLink:false}}:{action:a};
+  const j=await (await fetch(API+'/launch-action',{method:'POST',headers:hdr(),body:JSON.stringify(payload)})).json();
+  launchOut.textContent=JSON.stringify(j,null,2);
 }
 
 /* ----- health & logs ----- */
 async function checkHealth(){
-  const r=await fetch(API+'/health',{headers:hdr()});
-  if(!r.ok){healthOut.textContent='Unauthorized';return;}
-  const j=await r.json();
-  const ok = k=>j.env && j.env[k];
-  healthOut.innerHTML =
-    `🧠 Brain is live | Uptime: ${j.uptimeMinutes} min\n`+
+  const j=await (await fetch(API+'/health',{headers:hdr()})).json();
+  if(j.error){healthOut.textContent='Unauthorized';return;}
+  const ok=k=>j.env&&j.env[k];
+  healthOut.innerHTML=`🧠 Brain live | Uptime: ${j.uptimeMinutes} min\n`+
     Object.keys(j.env||{}).map(k=>`${k}: ${ok(k)?'<span class="env-ok">✔</span>':'<span class="env-miss">✖</span>'}`).join('  ');
 }
 async function loadLogs(){
-  const r=await fetch(API+'/cli-logs',{headers:hdr()});
-  const j=await r.json();
-  logBox.textContent = r.ok ? j.logs.join('\n') : 'Unauthorized';
+  const j=await (await fetch(API+'/cli-logs',{headers:hdr()})).json();
+  logBox.textContent=j.logs?j.logs.join('\n'):'Unauthorized';
 }
 
 /* auto show */
-if(localStorage.getItem(KEY)){
-  loginBox.style.display='none'; dash.style.display='block';
-  loadMem();loadDrive();checkHealth();loadLogs();
-}
+if(localStorage.getItem(KEY)){loginBox.style.display='none';dash.style.display='block';showTab('healthTab');loadMem();loadDrive();checkHealth();loadLogs();}
 </script>
 </body>
 </html>
