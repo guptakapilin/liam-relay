@@ -1,182 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Liam Control Panel</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Liam Secure Panel</title>
   <style>
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #0c1f35;
-      color: white;
-      padding: 15px 30px;
-      font-size: 1.5em;
-    }
-    .container {
-      padding: 30px;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      margin-bottom: 25px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .card h2 {
-      margin-top: 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    table th, table td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-align: left;
-    }
-    button {
-      padding: 10px 15px;
-      background: #007BFF;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1em;
-    }
-    .log-box {
-      background: #000;
-      color: #0f0;
-      padding: 15px;
-      font-family: monospace;
-      height: 200px;
-      overflow-y: scroll;
-    }
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    .card { background: #fff; padding: 20px; margin: 20px auto; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 800px; }
+    h2 { margin-top: 0; }
+    label { display: block; margin-top: 10px; }
+    input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 15px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    pre { background: #111; color: #0f0; padding: 10px; height: 200px; overflow: auto; border-radius: 6px; }
+    .mem-table { width: 100%; border-collapse: collapse; }
+    .mem-table th, .mem-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    .hidden { display: none; }
+    .error { color: red; }
   </style>
 </head>
 <body>
 
-<header>Liam Unified Dashboard</header>
-
-<div class="container">
-
-  <!-- 📤 Email Sender -->
-  <div class="card">
-    <h2>Send Email</h2>
-    <input type="email" id="emailTo" placeholder="Recipient email">
-    <select id="emailTemplate">
-      <option value="email_template.txt">Default Template</option>
-    </select>
-    <input type="text" id="emailLink" placeholder="Drive link (optional)">
-    <textarea id="emailBody" placeholder="Custom message body (optional override)"></textarea>
-    <button onclick="sendEmail()">Send Email</button>
-    <div id="emailStatus"></div>
+  <!-- Login Box -->
+  <div class="card" id="loginBox">
+    <h2>🔐 Liam Panel Login</h2>
+    <label>Username</label>
+    <input type="text" id="loginUser" />
+    <label>Password</label>
+    <input type="password" id="loginPass" />
+    <button onclick="auth()">Login</button>
+    <p class="error" id="loginError"></p>
   </div>
 
-  <!-- 📥 Upload Memory File -->
-  <div class="card">
-    <h2>Upload Memory File (JSON/ZIP)</h2>
-    <input type="file" id="memoryFile">
-    <button onclick="uploadMemory()">Upload</button>
-    <div id="uploadStatus"></div>
+  <!-- Main Panel -->
+  <div class="card hidden" id="panel">
+    <h2>🧠 Liam Dashboard</h2>
+    <p>Status: <span id="status">Checking...</span></p>
+    <button onclick="ping()">🔄 Ping Server</button>
+    <button onclick="checkEnv()">⚙️ Check ENV</button>
   </div>
 
-  <!-- 🧠 Unified Memory Viewer -->
-  <div class="card">
-    <h2>Agent Memory Files</h2>
+  <div class="card hidden" id="emailPanel">
+    <h2>📩 Send Email</h2>
+    <form id="emailForm">
+      <label>To Email</label>
+      <input type="email" id="emailTo" required />
+
+      <label>Template</label>
+      <select id="template">
+        <option value="email_template.txt">Default Template</option>
+        <option value="email_body_plain.txt">Plain</option>
+        <option value="email_body_branded.txt">Branded</option>
+      </select>
+
+      <label>Optional Google Drive Link</label>
+      <input type="url" id="driveLink" placeholder="https://..." />
+
+      <button type="submit">📤 Send Email</button>
+    </form>
+    <p id="emailResult"></p>
+  </div>
+
+  <div class="card hidden" id="memoryPanel">
+    <h2>🗃️ Memory Files – Liam, Eva, Radhika</h2>
     <div id="memoryTables"></div>
   </div>
 
-  <!-- 🔍 CLI Logs -->
-  <div class="card">
-    <h2>CLI Logs</h2>
-    <button onclick="loadLogs()">Refresh Logs</button>
-    <div class="log-box" id="cliLogs">Logs will appear here...</div>
+  <div class="card hidden" id="logPanel">
+    <h2>💻 CLI Log</h2>
+    <pre id="cliLog"></pre>
   </div>
 
-</div>
+  <script>
+    async function auth() {
+      const username = document.getElementById('loginUser').value;
+      const password = document.getElementById('loginPass').value;
 
-<script>
-  async function sendEmail() {
-    const to = document.getElementById('emailTo').value;
-    const template = document.getElementById('emailTemplate').value;
-    const link = document.getElementById('emailLink').value;
-    const body = document.getElementById('emailBody').value;
+      const res = await fetch('/auth', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username, password })
+      });
 
-    const params = new URLSearchParams({ to });
-    if (link) params.append('link', link);
-    if (template) params.append('template', template);
-    if (body) params.append('body', body);
-
-    const response = await fetch(`/send-email?${params.toString()}`);
-    const status = await response.text();
-    document.getElementById('emailStatus').innerText = status;
-  }
-
-  async function uploadMemory() {
-    const fileInput = document.getElementById('memoryFile');
-    if (!fileInput.files.length) return alert('Please select a file.');
-
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-
-    const response = await fetch('/upload-memory', { method: 'POST', body: formData });
-    const data = await response.text();
-    document.getElementById('uploadStatus').innerText = data;
-  }
-
-  async function loadMemories() {
-    const res = await fetch('/list-memories');
-    const json = await res.json();
-    const { Liam = [], Eva = [], Radhika = [] } = json;
-
-    const agents = { Liam, Eva, Radhika };
-    let html = '';
-
-    for (const [agent, files] of Object.entries(agents)) {
-      html += `<h3>${agent}</h3><table><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>`;
-      if (files.length === 0) {
-        html += `<tr><td colspan="4">No files found</td></tr>`;
+      const result = await res.json();
+      if (result.token) {
+        localStorage.setItem('liam-token', result.token);
+        loadPanel();
       } else {
-        for (const file of files) {
-          html += `<tr>
-            <td>${new Date(file.modifiedTime).toLocaleString()}</td>
-            <td>${file.name}</td>
-            <td><a href="${file.webViewLink}" target="_blank">Open</a></td>
-            <td>${file.status || '—'}</td>
-          </tr>`;
-        }
+        document.getElementById('loginError').innerText = result.error || 'Invalid login';
       }
-      html += `</table>`;
     }
 
-    document.getElementById('memoryTables').innerHTML = html;
-  }
+    async function ping() {
+      const res = await fetch('/ping');
+      document.getElementById('status').innerText = await res.text();
+    }
 
-  async function loadLogs() {
-    const res = await fetch('/cli-log');
-    const text = await res.text();
-    document.getElementById('cliLogs').innerText = text || 'No logs yet.';
-  }
+    async function checkEnv() {
+      const res = await fetch('/check-env');
+      const json = await res.json();
+      log(JSON.stringify(json, null, 2));
+    }
 
-  loadMemories();
-</script>
+    async function loadPanel() {
+      document.getElementById('loginBox').classList.add('hidden');
+      document.querySelectorAll('#panel, #emailPanel, #memoryPanel, #logPanel').forEach(el => el.classList.remove('hidden'));
+      ping();
+      loadMemories();
+    }
+
+    async function loadMemories() {
+      const res = await fetch('/list-memories-all');
+      const json = await res.json();
+      let html = '';
+
+      for (const agent of ['Liam', 'Eva', 'Radhika']) {
+        const files = json[agent] || [];
+        html += `<h3>${agent}</h3><table class="mem-table"><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>`;
+        for (const f of files) {
+          html += `<tr>
+            <td>${new Date(f.modifiedTime).toLocaleString()}</td>
+            <td>${f.name}</td>
+            <td><a href="${f.webViewLink}" target="_blank">Open</a></td>
+            <td>${f.status || 'Pending'}</td>
+          </tr>`;
+        }
+        html += `</table>`;
+      }
+
+      document.getElementById('memoryTables').innerHTML = html;
+    }
+
+    function log(msg) {
+      const el = document.getElementById('cliLog');
+      el.textContent += `\n${msg}`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // Auto-login with token
+    async function validateToken() {
+      const token = localStorage.getItem('liam-token');
+      if (!token) return;
+
+      const res = await fetch('/auth/validate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token })
+      });
+
+      const json = await res.json();
+      if (json.valid) {
+        loadPanel();
+      } else {
+        localStorage.removeItem('liam-token');
+      }
+    }
+
+    validateToken();
+  </script>
 
 </body>
 </html>
