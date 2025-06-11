@@ -1,23 +1,20 @@
 {
-  "lastUpdated": "2025-06-11T00:00:00.000Z",
+  "lastUpdated": "2025-06-11T00:00:00Z",
   "agents": {
     "Liam": {
-      "memoriesFolderId": "1C9HEG8QWOb0WKag4S5oMEiloKt0sIjru",
-      "archivesFolderId": "1xDuK4aSerrJex82AaBod0UgdsqONrx-j",
-      "unifiedFolderId": "1CFOWeCjFMZO8uiZTJVYLAAxqU_N7MvVX",
-      "archives": []
+      "archives": [],
+      "unifiedFolderId": "env:LIAMUNIFIED",
+      "archivesFolderId": "env:LIAMARCHIVES"
     },
     "Eva": {
-      "memoriesFolderId": "1GNb7hHViJ0pYvVVlA1LtJc8tlFx9XP6_",
-      "archivesFolderId": "1U_20UddLAH1Sa1FZP9w-8M9FnD9YD-ek",
-      "unifiedFolderId": "1kj6O-Ty_p7dzTn_uZF5itgfLBDZQ8qvn",
-      "archives": []
+      "archives": [],
+      "unifiedFolderId": "env:EVAUNIFIED",
+      "archivesFolderId": "env:EVAARCHIVES"
     },
     "Radhika": {
-      "memoriesFolderId": "1Y6NarUTEoGVm-2xhLEIPfrGvXXiCMEkv",
-      "archivesFolderId": "1j_sgJ0O39biTqZOcsdPFLLuN4nVoRfOE",
-      "unifiedFolderId": "16iN3R87PfJzMYKYKrJR-dSt-JmEJEA2s",
-      "archives": []
+      "archives": [],
+      "unifiedFolderId": "env:RADHIKAUNIFIED",
+      "archivesFolderId": "env:RADHIKAARCHIVES"
     }
   }
 }
