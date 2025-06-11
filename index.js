@@ -8,10 +8,11 @@ const { google } = require('googleapis');
 dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(express.static('public')); // Serve static files like panel.html
 
 const PORT = process.env.PORT || 3000;
 
-// 🔐 AUTH FUNCTION using SERVICE ACCOUNT
+// 🔐 Auth client using Google Service Account
 const getAuthClient = async (scopes = []) => {
   const auth = new google.auth.GoogleAuth({
     keyFile: '/etc/secrets/credentials.json',
@@ -123,7 +124,6 @@ app.get('/list-memories', async (req, res) => {
     ]);
 
     const drive = google.drive({ version: 'v3', auth });
-
     const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
 
     const response = await drive.files.list({
@@ -134,7 +134,7 @@ app.get('/list-memories', async (req, res) => {
 
     return res.status(200).json({ files: response.data.files });
   } catch (err) {
-    console.error('Error listing files:', err.message);
+    console.error('Error listing memory files:', err.message);
     return res.status(500).send('Failed to list memory files.');
   }
 });
@@ -148,7 +148,9 @@ app.post('/upload-drive', async (req, res) => {
   }
 
   try {
-    const auth = await getAuthClient(['https://www.googleapis.com/auth/drive.file']);
+    const auth = await getAuthClient([
+      'https://www.googleapis.com/auth/drive.file',
+    ]);
 
     const drive = google.drive({ version: 'v3', auth });
 
@@ -189,7 +191,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
+  console.log(`✅ Liam-Mailer v4.6 running on port ${PORT}`);
 });
-const panelPath = path.join(__dirname, 'panel.html');
-app.get('/panel.html', (req, res) => res.sendFile(panelPath));
