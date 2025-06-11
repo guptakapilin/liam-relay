@@ -108,6 +108,29 @@ app.get('/create-doc', async (req, res) => {
     return res.status(500).send('Failed to create document.');
   }
 });
+app.get('/list-memories', async (req, res) => {
+  try {
+    const auth = await authenticate({
+      keyfilePath: path.join(__dirname, 'credentials.json'),
+      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    });
+
+    const drive = google.drive({ version: 'v3', auth });
+
+    const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
+
+    const response = await drive.files.list({
+      q: `'${folderId}' in parents and trashed = false`,
+      fields: 'files(id, name, modifiedTime, webViewLink)',
+      orderBy: 'modifiedTime desc',
+    });
+
+    return res.status(200).json({ files: response.data.files });
+  } catch (err) {
+    console.error('Error listing files:', err.message);
+    return res.status(500).send('Failed to list memory files.');
+  }
+});
 
 // === /upload-drive ===
 app.post('/upload-drive', async (req, res) => {
