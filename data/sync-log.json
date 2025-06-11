@@ -1,56 +1,23 @@
-const fs = require('fs');
-const path = require('path');
-
-const SYNC_LOG_PATH = path.join(__dirname, 'sync-log.json');
-
-// Default fallback if sync-log.json is missing
-let syncLog = {
-  lastUpdated: new Date().toISOString(),
-  agents: {
-    Liam: {
-      archives: [],
-      unifiedFolderId: process.env.LiamUnified || '',
+{
+  "lastUpdated": "2025-06-11T00:00:00.000Z",
+  "agents": {
+    "Liam": {
+      "memoriesFolderId": "1C9HEG8QWOb0WKag4S5oMEiloKt0sIjru",
+      "archivesFolderId": "1xDuK4aSerrJex82AaBod0UgdsqONrx-j",
+      "unifiedFolderId": "1CFOWeCjFMZO8uiZTJVYLAAxqU_N7MvVX",
+      "archives": []
     },
-    Eva: {
-      archives: [],
-      unifiedFolderId: process.env.EvaUnified || '',
+    "Eva": {
+      "memoriesFolderId": "1GNb7hHViJ0pYvVVlA1LtJc8tlFx9XP6_",
+      "archivesFolderId": "1U_20UddLAH1Sa1FZP9w-8M9FnD9YD-ek",
+      "unifiedFolderId": "1kj6O-Ty_p7dzTn_uZF5itgfLBDZQ8qvn",
+      "archives": []
     },
-    Radhika: {
-      archives: [],
-      unifiedFolderId: process.env.RadhikaUnified || '',
+    "Radhika": {
+      "memoriesFolderId": "1Y6NarUTEoGVm-2xhLEIPfrGvXXiCMEkv",
+      "archivesFolderId": "1j_sgJ0O39biTqZOcsdPFLLuN4nVoRfOE",
+      "unifiedFolderId": "16iN3R87PfJzMYKYKrJR-dSt-JmEJEA2s",
+      "archives": []
     }
   }
-};
-
-// ✅ Load sync-log.json from disk, fallback to default if fails
-const loadSyncLog = () => {
-  try {
-    const raw = fs.readFileSync(SYNC_LOG_PATH, 'utf8');
-    syncLog = JSON.parse(raw);
-    console.log('✅ Loaded sync-log.json');
-  } catch (err) {
-    console.warn('⚠️ sync-log.json not found or invalid. Using fallback.');
-  }
-};
-
-// ✅ Save sync log to disk
-const saveSyncLog = () => {
-  syncLog.lastUpdated = new Date().toISOString();
-  fs.writeFileSync(SYNC_LOG_PATH, JSON.stringify(syncLog, null, 2), 'utf8');
-  console.log('💾 sync-log.json updated');
-};
-
-// ✅ Get full log
-const getSyncLog = () => syncLog;
-
-// ✅ Get folder ID by agent
-const getUnifiedFolderId = (agent) => {
-  return syncLog.agents?.[agent]?.unifiedFolderId || '';
-};
-
-module.exports = {
-  loadSyncLog,
-  saveSyncLog,
-  getSyncLog,
-  getUnifiedFolderId
-};
+}
