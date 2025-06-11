@@ -1,139 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Liam Dashboard</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 30px;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: center;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      width: 300px;
-    }
-    button {
-      padding: 10px 16px;
-      margin-top: 10px;
-      background: #4caf50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    pre {
-      background: #eee;
-      padding: 10px;
-      border-radius: 6px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f9f9f9; }
+    .container { max-width: 1100px; margin: auto; }
+    h1 { color: #222; }
+    button { margin: 8px 8px 8px 0; padding: 10px 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background-color: #eee; }
+    .log, .status { margin-top: 20px; background: #fff; padding: 10px; border: 1px solid #ccc; }
+    .auth { margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h1>🧠 Liam Control Panel</h1>
+  <div class="container">
+    <h1>Liam Control Dashboard</h1>
 
-  <div class="grid">
-    <!-- Ping -->
-    <div class="card">
-      <h3>💡 Ping</h3>
-      <button onclick="ping()">Check Uptime</button>
-      <pre id="pingOutput"></pre>
+    <div class="auth">
+      <label for="token">Enter Access Token:</label>
+      <input type="password" id="token" />
+      <button onclick="saveToken()">Login</button>
     </div>
 
-    <!-- Memory Sync -->
-    <div class="card">
-      <h3>🔄 Memory Sync</h3>
-      <button onclick="triggerMemorySync()">Sync Now</button>
-      <pre id="syncResult">No sync attempted yet.</pre>
+    <div class="controls">
+      <button onclick="listMemories()">🧠 List Memories</button>
+      <button onclick="sendEmail()">📤 Send Email</button>
+      <button onclick="uploadToUnified()">📂 Upload to Unified</button>
+      <button onclick="syncMemory()">🔄 Sync Memory</button>
     </div>
 
-    <!-- Send Email -->
-    <div class="card">
-      <h3>📤 Send Email</h3>
-      <input id="emailTo" placeholder="Enter email" />
-      <input id="docLink" placeholder="Google Doc Link" />
-      <button onclick="sendEmail()">Send Email</button>
-      <pre id="emailOutput"></pre>
+    <table id="memoryTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Name</th>
+          <th>Path</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="status">
+      <h3>🔐 System Health</h3>
+      <p id="statusOutput">Checking...</p>
     </div>
 
-    <!-- Create Document -->
-    <div class="card">
-      <h3>📄 Create Document</h3>
-      <input id="templateFile" placeholder="e.g. template1.txt" />
-      <button onclick="createDoc()">Generate</button>
-      <pre id="docOutput"></pre>
+    <div class="log">
+      <h3>📋 CLI Logs</h3>
+      <pre id="logOutput">No logs loaded yet.</pre>
     </div>
   </div>
 
   <script>
-    async function ping() {
-      const out = document.getElementById('pingOutput');
-      out.textContent = '⏳ Pinging...';
-      try {
-        const res = await fetch('/ping');
-        const text = await res.text();
-        out.textContent = text;
-      } catch (err) {
-        out.textContent = '❌ Ping failed';
+    function saveToken() {
+      const token = document.getElementById('token').value;
+      if (token) {
+        localStorage.setItem('liamToken', token);
+        alert('Token saved. You can now access dashboard features.');
       }
     }
 
-    async function triggerMemorySync() {
-      const resultBox = document.getElementById('syncResult');
-      resultBox.textContent = '🔄 Syncing...';
-      try {
-        const res = await fetch('/sync-memories');
-        const json = await res.json();
-        resultBox.textContent = '✅ Synced:\n' + json.synced.map(e => `${e.agent}: ${e.file}`).join('\n');
-      } catch (e) {
-        resultBox.textContent = '❌ Failed to sync: ' + e.message;
-      }
+    function listMemories() {
+      fetch('/list-memories')
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector('#memoryTable tbody');
+          tbody.innerHTML = '';
+          data.files.forEach(file => {
+            const row = `<tr>
+              <td>${new Date(file.modifiedTime).toLocaleString()}</td>
+              <td>${file.name}</td>
+              <td><a href="${file.webViewLink}" target="_blank">View</a></td>
+              <td>✔️</td>
+            </tr>`;
+            tbody.innerHTML += row;
+          });
+        })
+        .catch(err => {
+          alert('Error fetching memory list');
+          console.error(err);
+        });
     }
 
-    async function sendEmail() {
-      const out = document.getElementById('emailOutput');
-      const to = document.getElementById('emailTo').value;
-      const link = document.getElementById('docLink').value;
-      out.textContent = '📨 Sending...';
-      try {
-        const res = await fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}`);
-        const text = await res.text();
-        out.textContent = text;
-      } catch (err) {
-        out.textContent = '❌ Email failed';
-      }
+    function sendEmail() {
+      const to = prompt('Enter recipient email:');
+      const link = prompt('Enter Drive link:');
+      if (!to || !link) return alert('Both email and link are required.');
+      fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}`)
+        .then(res => res.text())
+        .then(alert)
+        .catch(err => alert('Error sending email.'));
     }
 
-    async function createDoc() {
-      const out = document.getElementById('docOutput');
-      const file = document.getElementById('templateFile').value;
-      out.textContent = '📄 Creating...';
-      try {
-        const res = await fetch(`/create-doc?template=${file}`);
-        const json = await res.json();
-        out.innerHTML = `✅ Created: <a href="${json.link}" target="_blank">${json.link}</a>`;
-      } catch (err) {
-        out.textContent = '❌ Failed to create doc';
-      }
+    function uploadToUnified() {
+      alert('🚧 Upload handler to be added in memory-handler.js');
+    }
+
+    function syncMemory() {
+      alert('🚧 Sync memory handler pending...');
     }
   </script>
 </body>
