@@ -4,40 +4,33 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
-const { authenticate } = require('@google-cloud/local-auth');
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 
-// === Serve Static HTML from /public ===
-app.use(express.static(path.join(__dirname, 'public')));
-
 const PORT = process.env.PORT || 3000;
 
-// === /ping ===
-app.get('/ping', (req, res) => {
-  return res.status(200).send('Liam is alive. 🧠');
-});
+// 🔐 AUTH FUNCTION using SERVICE ACCOUNT
+const getAuthClient = async (scopes = []) => {
+  const auth = new google.auth.GoogleAuth({
+    keyFile: '/etc/secrets/credentials.json',
+    scopes,
+  });
+  return await auth.getClient();
+};
 
-// === / ===
-app.get('/', (req, res) => {
-  res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
-});
-
-// === /send-email ===
+// ========== /send-email ==========
 app.get('/send-email', async (req, res) => {
   const to = req.query.to;
   const driveLink = req.query.link || 'https://drive.google.com/';
 
-  if (!to) {
-    return res.status(400).send('Missing "to" query param.');
-  }
+  if (!to) return res.status(400).send('Missing "to" query param.');
 
   let messageTemplate;
   try {
     messageTemplate = fs.readFileSync(path.join(__dirname, 'templates', 'email_template.txt'), 'utf8');
-  } catch (err) {
+  } catch {
     return res.status(500).send('Email template read failed.');
   }
 
@@ -67,7 +60,7 @@ app.get('/send-email', async (req, res) => {
   }
 });
 
-// === /create-doc ===
+// ========== /create-doc ==========
 app.get('/create-doc', async (req, res) => {
   const file = req.query.template;
   if (!file) return res.status(400).send('Missing "template" query param');
@@ -78,16 +71,18 @@ app.get('/create-doc', async (req, res) => {
   const content = fs.readFileSync(filePath, 'utf8');
 
   try {
-    const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
-      scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents'],
-    });
+    const auth = await getAuthClient([
+      'https://www.googleapis.com/auth/documents',
+      'https://www.googleapis.com/auth/drive',
+    ]);
 
     const docs = google.docs({ version: 'v1', auth });
     const drive = google.drive({ version: 'v3', auth });
 
     const doc = await docs.documents.create({
-      requestBody: { title: `Liam Generated - ${file}` },
+      requestBody: {
+        title: `Liam Generated - ${file}`,
+      },
     });
 
     const documentId = doc.data.documentId;
@@ -106,7 +101,10 @@ app.get('/create-doc', async (req, res) => {
 
     await drive.permissions.create({
       fileId: documentId,
-      requestBody: { role: 'reader', type: 'anyone' },
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
     });
 
     const link = `https://docs.google.com/document/d/${documentId}/edit?usp=sharing`;
@@ -117,15 +115,15 @@ app.get('/create-doc', async (req, res) => {
   }
 });
 
-// === /list-memories ===
+// ========== /list-memories ==========
 app.get('/list-memories', async (req, res) => {
   try {
-    const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-    });
+    const auth = await getAuthClient([
+      'https://www.googleapis.com/auth/drive.readonly',
+    ]);
 
     const drive = google.drive({ version: 'v3', auth });
+
     const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
 
     const response = await drive.files.list({
@@ -136,12 +134,12 @@ app.get('/list-memories', async (req, res) => {
 
     return res.status(200).json({ files: response.data.files });
   } catch (err) {
-    console.error('List memory error:', err.message);
+    console.error('Error listing files:', err.message);
     return res.status(500).send('Failed to list memory files.');
   }
 });
 
-// === /upload-drive ===
+// ========== /upload-drive ==========
 app.post('/upload-drive', async (req, res) => {
   const { fileName, filePath, mimeType } = req.body;
 
@@ -150,10 +148,7 @@ app.post('/upload-drive', async (req, res) => {
   }
 
   try {
-    const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
-    });
+    const auth = await getAuthClient(['https://www.googleapis.com/auth/drive.file']);
 
     const drive = google.drive({ version: 'v3', auth });
 
@@ -182,6 +177,15 @@ app.post('/upload-drive', async (req, res) => {
     console.error('Drive upload error:', err.message);
     return res.status(500).json({ error: 'Drive upload failed', details: err.message });
   }
+});
+
+// ========== /ping & root ==========
+app.get('/ping', (req, res) => {
+  return res.status(200).send('Liam is alive. 🧠');
+});
+
+app.get('/', (req, res) => {
+  res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
 });
 
 app.listen(PORT, () => {
