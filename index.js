@@ -18,6 +18,17 @@ const PANEL_SECRET = process.env.PANEL_SECRET;
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_PASS = process.env.GMAIL_PASS;
 
+/* ---- ENV sanity helper ---- */
+const REQUIRED_ENV = [
+  'PANEL_USER','PANEL_PASS','PANEL_SECRET',
+  'GMAIL_USER','GMAIL_PASS'
+];
+function checkEnv(){
+  const report = {};
+  REQUIRED_ENV.forEach(k => report[k] = !!process.env[k]);
+  return report;
+}
+
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(bodyParser.json());
@@ -61,9 +72,9 @@ app.post('/auth', (req, res) => {
 });
 
 // --- PING ---
-app.get('/ping', (req, res) => {
-  logEvent(`🛰️ Ping check`);
-  res.status(200).send('pong');
+app.get('/ping', (_req, res) => {
+  res.status(200).send('🧠 Brain is live');
+  logEvent('🧠 Ping → Brain is live');
 });
 
 // --- HEALTH CHECK ---
@@ -73,16 +84,34 @@ app.get('/health', isAuthenticated, (req, res) => {
     uptimeMinutes: Math.floor(process.uptime() / 60),
     memory: process.memoryUsage(),
     timestamp: new Date().toISOString(),
-    ping: 'pong'
+    ping          : 'pong',
+    env           : checkEnv()         
   };
   logEvent(`🩺 Health check requested`);
   res.json(payload);
 });
 
-// --- UPLOAD MEMORY ZIP ---
+// --- UPLOAD MEMORY ZIP (with duplicate check) ---
 app.post('/upload-memory', isAuthenticated, upload.single('file'), async (req, res) => {
   try {
-    const zipPath = req.file.path;
+    const zipPath      = req.file.path;          // temp upload
+    const originalName = req.file.originalname;  // e.g. chat-history.zip
+    const logFile      = path.join(memoryFolder, 'sync-log.json');
+
+    // --- Duplicate-ZIP detection ────────────────── ---
+    const alreadySeen =
+      fs.existsSync(logFile) &&
+      JSON.parse(fs.readFileSync(logFile))
+        .some(e => e.original === originalName);
+
+    if (alreadySeen) {
+      fs.unlinkSync(zipPath);                    // remove temp
+      logEvent(`🔁 ZIP ${originalName} already ingested`);
+      return res.json({ status: 'already_ingested', zip: originalName });
+    }
+    /* ───────────────────────────────────────────── */
+
+    /* ── Unzip into a new timestamp folder ─────── */
     const extractPath = path.join(memoryFolder, Date.now().toString());
     fs.mkdirSync(extractPath);
 
@@ -90,6 +119,15 @@ app.post('/upload-memory', isAuthenticated, upload.single('file'), async (req, r
       .pipe(unzipper.Extract({ path: extractPath }))
       .on('close', () => {
         fs.unlinkSync(zipPath);
+
+        // append to sync-log
+        const now  = new Date().toISOString();
+        const arr  = fs.existsSync(logFile)
+          ? JSON.parse(fs.readFileSync(logFile))
+          : [];
+        arr.push({ folder: extractPath, original: originalName, uploadedAt: now });
+        fs.writeFileSync(logFile, JSON.stringify(arr, null, 2));
+
         logEvent(`📦 Memory file extracted to ${extractPath}`);
         res.json({ status: 'Success', extractedTo: extractPath });
       });
