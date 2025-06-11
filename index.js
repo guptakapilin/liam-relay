@@ -4,13 +4,26 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
-const { GoogleAuth } = require('google-auth-library');
+const { authenticate } = require('@google-cloud/local-auth');
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 
+// === Serve Static HTML from /public ===
+app.use(express.static(path.join(__dirname, 'public')));
+
 const PORT = process.env.PORT || 3000;
+
+// === /ping ===
+app.get('/ping', (req, res) => {
+  return res.status(200).send('Liam is alive. 🧠');
+});
+
+// === / ===
+app.get('/', (req, res) => {
+  res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
+});
 
 // === /send-email ===
 app.get('/send-email', async (req, res) => {
@@ -65,19 +78,16 @@ app.get('/create-doc', async (req, res) => {
   const content = fs.readFileSync(filePath, 'utf8');
 
   try {
-    const auth = new GoogleAuth({
-      keyFile: '/etc/secrets/credentials.json',
-      scopes: ['https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/drive'],
+    const auth = await authenticate({
+      keyfilePath: path.join(__dirname, 'credentials.json'),
+      scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents'],
     });
 
-    const client = await auth.getClient();
-    const docs = google.docs({ version: 'v1', auth: client });
-    const drive = google.drive({ version: 'v3', auth: client });
+    const docs = google.docs({ version: 'v1', auth });
+    const drive = google.drive({ version: 'v3', auth });
 
     const doc = await docs.documents.create({
-      requestBody: {
-        title: `Liam Generated - ${file}`,
-      },
+      requestBody: { title: `Liam Generated - ${file}` },
     });
 
     const documentId = doc.data.documentId;
@@ -96,10 +106,7 @@ app.get('/create-doc', async (req, res) => {
 
     await drive.permissions.create({
       fileId: documentId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
+      requestBody: { role: 'reader', type: 'anyone' },
     });
 
     const link = `https://docs.google.com/document/d/${documentId}/edit?usp=sharing`;
@@ -113,16 +120,13 @@ app.get('/create-doc', async (req, res) => {
 // === /list-memories ===
 app.get('/list-memories', async (req, res) => {
   try {
-    const auth = new GoogleAuth({
-      keyFile: '/etc/secrets/credentials.json',
+    const auth = await authenticate({
+      keyfilePath: path.join(__dirname, 'credentials.json'),
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
-    const client = await auth.getClient();
-    const drive = google.drive({ version: 'v3', auth: client });
-
+    const drive = google.drive({ version: 'v3', auth });
     const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
-    console.log('Using Folder ID:', folderId);
 
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
@@ -132,7 +136,7 @@ app.get('/list-memories', async (req, res) => {
 
     return res.status(200).json({ files: response.data.files });
   } catch (err) {
-    console.error('🔥 Detailed list error:', err);
+    console.error('List memory error:', err.message);
     return res.status(500).send('Failed to list memory files.');
   }
 });
@@ -146,13 +150,12 @@ app.post('/upload-drive', async (req, res) => {
   }
 
   try {
-    const auth = new GoogleAuth({
-      keyFile: '/etc/secrets/credentials.json',
+    const auth = await authenticate({
+      keyfilePath: path.join(__dirname, 'credentials.json'),
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
 
-    const client = await auth.getClient();
-    const drive = google.drive({ version: 'v3', auth: client });
+    const drive = google.drive({ version: 'v3', auth });
 
     const fileMetadata = {
       name: fileName,
@@ -181,22 +184,6 @@ app.post('/upload-drive', async (req, res) => {
   }
 });
 
-// === Health Routes ===
-app.get('/ping', (req, res) => {
-  return res.status(200).send('Liam is alive. 🧠');
-});
-
-app.get('/', (req, res) => {
-  res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
-});
-
 app.listen(PORT, () => {
   console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
 });
-
-const panelHtmlPath = path.join(__dirname, 'panel.html');
-
-app.get('/panel', (req, res) => {
-  res.sendFile(panelHtmlPath);
-});
-
