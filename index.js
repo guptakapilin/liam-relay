@@ -83,12 +83,12 @@ const isAuthenticated = (req, res, next) => {
 
 // --- LOGIN ROUTE ---
 app.post('/auth', (req, res) => {
-  const { username, password } = req.body;
-  if (username === PANEL_USER && password === PANEL_PASS) {
-    logEvent(`🔐 Successful login for user: ${username}`);
-    return res.json({ token: PANEL_SECRET });
+  const { user, pass } = req.body;
+  if (user === process.env.PANEL_USER && pass === process.env.PANEL_PASS) {
+    logEvent(`🔐 Successful login for user: ${user}`);
+    return res.json({ token: process.env.PANEL_SECRET });
   } else {
-    logEvent(`❌ Failed login attempt for user: ${username}`);
+    logEvent(`❌ Failed login attempt for user: ${user}`);
     return res.status(403).json({ error: 'Invalid credentials' });
   }
 });
