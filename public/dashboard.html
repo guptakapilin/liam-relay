@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Liam Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    button {
+      padding: 10px 16px;
+      margin-top: 10px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    pre {
+      background: #eee;
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 Liam Control Panel</h1>
+
+  <div class="grid">
+    <!-- Ping -->
+    <div class="card">
+      <h3>💡 Ping</h3>
+      <button onclick="ping()">Check Uptime</button>
+      <pre id="pingOutput"></pre>
+    </div>
+
+    <!-- Memory Sync -->
+    <div class="card">
+      <h3>🔄 Memory Sync</h3>
+      <button onclick="triggerMemorySync()">Sync Now</button>
+      <pre id="syncResult">No sync attempted yet.</pre>
+    </div>
+
+    <!-- Send Email -->
+    <div class="card">
+      <h3>📤 Send Email</h3>
+      <input id="emailTo" placeholder="Enter email" />
+      <input id="docLink" placeholder="Google Doc Link" />
+      <button onclick="sendEmail()">Send Email</button>
+      <pre id="emailOutput"></pre>
+    </div>
+
+    <!-- Create Document -->
+    <div class="card">
+      <h3>📄 Create Document</h3>
+      <input id="templateFile" placeholder="e.g. template1.txt" />
+      <button onclick="createDoc()">Generate</button>
+      <pre id="docOutput"></pre>
+    </div>
+  </div>
+
+  <script>
+    async function ping() {
+      const out = document.getElementById('pingOutput');
+      out.textContent = '⏳ Pinging...';
+      try {
+        const res = await fetch('/ping');
+        const text = await res.text();
+        out.textContent = text;
+      } catch (err) {
+        out.textContent = '❌ Ping failed';
+      }
+    }
+
+    async function triggerMemorySync() {
+      const resultBox = document.getElementById('syncResult');
+      resultBox.textContent = '🔄 Syncing...';
+      try {
+        const res = await fetch('/sync-memories');
+        const json = await res.json();
+        resultBox.textContent = '✅ Synced:\n' + json.synced.map(e => `${e.agent}: ${e.file}`).join('\n');
+      } catch (e) {
+        resultBox.textContent = '❌ Failed to sync: ' + e.message;
+      }
+    }
+
+    async function sendEmail() {
+      const out = document.getElementById('emailOutput');
+      const to = document.getElementById('emailTo').value;
+      const link = document.getElementById('docLink').value;
+      out.textContent = '📨 Sending...';
+      try {
+        const res = await fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}`);
+        const text = await res.text();
+        out.textContent = text;
+      } catch (err) {
+        out.textContent = '❌ Email failed';
+      }
+    }
+
+    async function createDoc() {
+      const out = document.getElementById('docOutput');
+      const file = document.getElementById('templateFile').value;
+      out.textContent = '📄 Creating...';
+      try {
+        const res = await fetch(`/create-doc?template=${file}`);
+        const json = await res.json();
+        out.innerHTML = `✅ Created: <a href="${json.link}" target="_blank">${json.link}</a>`;
+      } catch (err) {
+        out.textContent = '❌ Failed to create doc';
+      }
+    }
+  </script>
+</body>
+</html>
