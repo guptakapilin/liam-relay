@@ -193,3 +193,10 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
 });
+
+const panelHtmlPath = path.join(__dirname, 'panel.html');
+
+app.get('/panel', (req, res) => {
+  res.sendFile(panelHtmlPath);
+});
+
