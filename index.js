@@ -12,37 +12,54 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- ENV VARS ---
+const PANEL_USER = process.env.PANEL_USER;
+const PANEL_PASS = process.env.PANEL_PASS;
+const PANEL_SECRET = process.env.PANEL_SECRET;
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.GMAIL_PASS;
+
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// --- SIMPLE TOKEN AUTH ---
-const PANEL_USER = process.env.PANEL_USER;
-const PANEL_PASS = process.env.PANEL_PASS;
-const TOKEN_SECRET = process.env.TOKEN_SECRET || 'liam-secret';
-
-// --- MEMORY UPLOAD STORAGE SETUP ---
+// --- MEMORY FOLDER SETUP ---
 const upload = multer({ dest: 'uploads/' });
 const memoryFolder = path.join(__dirname, 'memories');
 if (!fs.existsSync(memoryFolder)) fs.mkdirSync(memoryFolder);
 
-// --- UTILITY ---
-const generateToken = () => `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+// --- AUTH MIDDLEWARE ---
 const isAuthenticated = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (token === TOKEN_SECRET) next();
+  if (token === PANEL_SECRET) next();
   else res.status(401).json({ error: 'Unauthorized' });
 };
 
-// --- LOGIN ---
+// --- LOGIN ROUTE ---
 app.post('/auth', (req, res) => {
   const { username, password } = req.body;
   if (username === PANEL_USER && password === PANEL_PASS) {
-    return res.json({ token: TOKEN_SECRET });
+    return res.json({ token: PANEL_SECRET });
   } else {
     return res.status(403).json({ error: 'Invalid credentials' });
   }
+});
+
+// --- PING (FOR CRON JOBS) ---
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
+// --- HEALTH CHECK ---
+app.get('/health', isAuthenticated, (req, res) => {
+  res.json({
+    status: 'Online',
+    uptimeMinutes: Math.floor(process.uptime() / 60),
+    memory: process.memoryUsage(),
+    timestamp: new Date().toISOString(),
+    ping: 'pong'
+  });
 });
 
 // --- MEMORY FILE UPLOAD ---
@@ -63,7 +80,7 @@ app.post('/upload-memory', isAuthenticated, upload.single('file'), async (req, r
   }
 });
 
-// --- MEMORY FILE LISTING ---
+// --- LIST MEMORY FILES ---
 app.get('/list-memories', isAuthenticated, (req, res) => {
   const results = [];
   fs.readdirSync(memoryFolder).forEach(dir => {
@@ -75,7 +92,7 @@ app.get('/list-memories', isAuthenticated, (req, res) => {
           date: new Date(Number(dir)).toISOString().split('T')[0],
           name: file,
           path: `/memories/${dir}/${file}`,
-          status: 'Parsed',
+          status: 'Parsed'
         });
       });
     }
@@ -83,26 +100,28 @@ app.get('/list-memories', isAuthenticated, (req, res) => {
   res.json(results);
 });
 
-// --- SEND EMAIL (Gmail API or SMTP Setup) ---
+// --- SEND EMAIL (USING GMAIL) ---
 app.post('/send-email', isAuthenticated, async (req, res) => {
   const { to, subject, body, includeLink } = req.body;
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER, // e.g. liam@crossconnexions.com
-      pass: process.env.EMAIL_PASS, // App password
-    },
+      user: GMAIL_USER,
+      pass: GMAIL_PASS
+    }
   });
 
-  const emailBody = includeLink ? `${body}\n\n[View Link](https://example.com)` : body;
+  const emailBody = includeLink
+    ? `${body}\n\n[View Link](https://example.com)`
+    : body;
 
   try {
     await transporter.sendMail({
-      from: `"Liam AI" <${process.env.EMAIL_USER}>`,
+      from: `"Liam AI" <${GMAIL_USER}>`,
       to,
       subject,
-      text: emailBody,
+      text: emailBody
     });
     res.json({ status: 'Email sent' });
   } catch (err) {
@@ -110,27 +129,23 @@ app.post('/send-email', isAuthenticated, async (req, res) => {
   }
 });
 
-// --- HEALTH STATUS ---
-app.get('/health', isAuthenticated, (req, res) => {
-  res.json({
-    status: 'Online',
-    uptime: `${Math.floor(process.uptime() / 60)} min`,
-    memory: process.memoryUsage().rss,
-  });
-});
-
-// --- CLI LOGS (Dummy) ---
+// --- CLI LOGS (DUMMY DATA) ---
 app.get('/cli-logs', isAuthenticated, (req, res) => {
   res.json({
     logs: [
       '[2025-06-11 16:00] Liam Core started.',
       '[2025-06-11 16:01] Email module loaded.',
-      '[2025-06-11 16:03] Memory ZIP parsed.',
-    ],
+      '[2025-06-11 16:03] Memory ZIP parsed.'
+    ]
   });
+});
+
+// --- SERVE DASHBOARD ON ROOT ---
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // --- START SERVER ---
 app.listen(PORT, () => {
-  console.log(`Liam backend running on http://localhost:${PORT}`);
+  console.log(`✅ Liam backend running at http://localhost:${PORT}`);
 });
