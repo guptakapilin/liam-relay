@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const DRIVE_FOLDER_ID = process.env.LIAM_MEMORIES_FOLDER_ID;   // existing env var
 
 // --- ENV VARS ---
 const PANEL_USER = process.env.PANEL_USER;
@@ -29,15 +30,10 @@ function checkEnv(){
   return report;
 }
 
-const express  = require('express');
-const bodyParser = require('body-parser');
-...
-/* your other require lines */
 
 /* ------------- existing helpers (detectPersona, checkEnv, etc.) ------------- */
 
 /* ---- Google Drive helper: list ZIPs sitting in Liam Memories master folder ---- */
-const DRIVE_FOLDER_ID = process.env.LIAM_MEMORIES_FOLDER_ID;   // existing env var
 
 async function listDriveZips () {
   const { google } = require('googleapis');
