@@ -120,6 +120,7 @@ app.get('/list-memories', async (req, res) => {
     const drive = google.drive({ version: 'v3', auth });
 
     const folderId = process.env.LIAM_MEMORIES_FOLDER_ID;
+    console.log('Using Folder ID:', folderId);
 
     const response = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
@@ -127,9 +128,10 @@ app.get('/list-memories', async (req, res) => {
       orderBy: 'modifiedTime desc',
     });
 
+    console.log('Files retrieved:', response.data.files);
     return res.status(200).json({ files: response.data.files });
   } catch (err) {
-    console.error('Error listing files:', err.message);
+    console.error('🔥 Detailed list error:', err);
     return res.status(500).send('Failed to list memory files.');
   }
 });
