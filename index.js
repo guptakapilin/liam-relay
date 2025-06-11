@@ -203,6 +203,129 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+/* ---------- crypto & helpers ---------- */
+const crypto = require('crypto');
+const fetch = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+
+function hmac(query) {
+  return crypto.createHmac('sha256', PANEL_SECRET).update(query).digest('hex');
+}
+
+/* ---------- /fetch-zip  (POST) ----------
+   body: { "url": "<public gdrive url>" }
+----------------------------------------- */
+app.post('/fetch-zip', isAuthenticated, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'url required' });
+
+    const tmpZip = path.join('uploads', `remote_${Date.now()}.zip`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('download failed');
+    await new Promise((r, j) => {
+      const file = fs.createWriteStream(tmpZip);
+      resp.body.pipe(file);
+      resp.body.on('error', j);
+      file.on('finish', r);
+    });
+
+    // re-use unzip logic
+    const extractPath = path.join(memoryFolder, Date.now().toString());
+    fs.mkdirSync(extractPath);
+    fs.createReadStream(tmpZip)
+      .pipe(unzipper.Extract({ path: extractPath }))
+      .on('close', () => {
+        fs.unlinkSync(tmpZip);
+        logEvent(`📦 Remote ZIP ingested → ${extractPath}`);
+
+        // sync-log append
+        const sync = path.join(memoryFolder, 'sync-log.json');
+        const arr = fs.existsSync(sync) ? JSON.parse(fs.readFileSync(sync)) : [];
+        arr.push({ folder: extractPath, uploadedAt: new Date().toISOString() });
+        fs.writeFileSync(sync, JSON.stringify(arr, null, 2));
+
+        res.json({ status: 'Success', extractedTo: extractPath });
+      });
+  } catch (e) {
+    logEvent(`❌ fetch-zip error: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/* ---------- /generate-recall-link  (POST) ----------
+   body: { "query": "text", "ttlMin": 30 }
+--------------------------------------------------- */
+app.post('/generate-recall-link', isAuthenticated, (req, res) => {
+  const { query, ttlMin = 30 } = req.body;
+  if (!query) return res.status(400).json({ error: 'query required' });
+
+  const expires = Date.now() + ttlMin * 60 * 1000;
+  const payload = `${query}|${expires}`;
+  const sig = hmac(payload);
+
+  const encodedQ = encodeURIComponent(query);
+  const link = `${req.protocol}://${req.get('host')}/recall?query=${encodedQ}&exp=${expires}&sig=${sig}`;
+  res.json({ link, expires });
+});
+
+/* ---------- /recall GET (signed) ----------
+   existing /recall POST will remain for internal calls
+------------------------------------------- */
+app.get('/recall', async (req, res) => {
+  const { query, exp, sig, top_k = 3 } = req.query;
+  if (!query || !exp || !sig) return res.status(400).json({ error: 'bad params' });
+  if (Date.now() > Number(exp)) return res.status(403).json({ error: 'link expired' });
+
+  const isValid = hmac(`${query}|${exp}`) === sig;
+  if (!isValid) return res.status(403).json({ error: 'bad signature' });
+
+  // we’ll reuse your existing recall logic:
+  const recallRes = await recallFromVector(query, Number(top_k) || 3);
+  res.json(recallRes);
+});
+
+/* ---------- /backup-memory  (POST) ----------
+   Zips latest memory folder + vector.index and uploads to Drive
+-------------------------------------------------------------- */
+app.post('/backup-memory', isAuthenticated, async (_req, res) => {
+  try {
+    const folders = fs.readdirSync(memoryFolder)
+      .filter(f => fs.statSync(path.join(memoryFolder, f)).isDirectory())
+      .sort((a,b) => Number(b)-Number(a));
+    if (!folders.length) throw new Error('No memory folder');
+
+    const latest = path.join(memoryFolder, folders[0]);
+    const zipOut = `/tmp/backup_${folders[0]}.zip`;
+    const arch = require('archiver')('zip');
+    const output = fs.createWriteStream(zipOut);
+    arch.pipe(output);
+    arch.directory(latest, false);
+    if (fs.existsSync(path.join(memoryFolder, 'vector.index')))
+      arch.file(path.join(memoryFolder, 'vector.index'), { name: 'vector.index' });
+    await arch.finalize();
+
+    // upload to Drive
+    const { google } = require('googleapis');
+    const auth = await require('@google-cloud/local-auth')
+      .getClient({ scopes: ['https://www.googleapis.com/auth/drive.file'] });
+    const drive = google.drive({ version: 'v3', auth });
+    const fileMeta = {
+      name: path.basename(zipOut),
+      parents: ['Liam Memories Backups'] // <-- Drive folder name; adjust if needed
+    };
+    await drive.files.create({
+      requestBody: fileMeta,
+      media: { mimeType: 'application/zip', body: fs.createReadStream(zipOut) }
+    });
+
+    logEvent(`💾 Backup uploaded to Drive: ${fileMeta.name}`);
+    res.json({ status: 'Backup complete', file: fileMeta.name });
+  } catch (e) {
+    logEvent(`❌ backup-memory error: ${e.message}`);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // --- START SERVER ---
 app.listen(PORT, () => {
   logEvent(`✅ Liam backend running at http://localhost:${PORT}`);
