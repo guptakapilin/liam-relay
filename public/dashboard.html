@@ -3,92 +3,108 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Liam Secure Panel</title>
+  <title>Liam Control Panel</title>
   <style>
-    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    .card { background: #fff; padding: 20px; margin: 20px auto; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 800px; }
+    body { font-family: Arial; background: #f0f2f5; margin: 0; padding: 0; }
+    .card { background: #fff; padding: 20px; margin: 20px auto; border-radius: 8px; box-shadow: 0 0 5px #ccc; width: 90%; max-width: 800px; }
     h2 { margin-top: 0; }
     label { display: block; margin-top: 10px; }
     input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; }
-    button { margin-top: 15px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button { margin-top: 10px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #0056b3; }
-    pre { background: #111; color: #0f0; padding: 10px; height: 200px; overflow: auto; border-radius: 6px; }
+    pre { background: #111; color: #0f0; padding: 10px; height: 200px; overflow: auto; }
+    .hidden { display: none; }
     .mem-table { width: 100%; border-collapse: collapse; }
     .mem-table th, .mem-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    .hidden { display: none; }
-    .error { color: red; }
   </style>
 </head>
 <body>
 
-  <!-- Login Box -->
-  <div class="card" id="loginBox">
-    <h2>🔐 Liam Panel Login</h2>
+  <!-- LOGIN SCREEN -->
+  <div class="card" id="loginCard">
+    <h2>🔐 Panel Login</h2>
     <label>Username</label>
-    <input type="text" id="loginUser" />
+    <input type="text" id="loginUser" placeholder="Enter username" />
     <label>Password</label>
-    <input type="password" id="loginPass" />
-    <button onclick="auth()">Login</button>
-    <p class="error" id="loginError"></p>
+    <input type="password" id="loginPass" placeholder="Enter password" />
+    <button onclick="login()">Login</button>
+    <p id="loginError" style="color: red;"></p>
   </div>
 
-  <!-- Main Panel -->
-  <div class="card hidden" id="panel">
-    <h2>🧠 Liam Dashboard</h2>
-    <p>Status: <span id="status">Checking...</span></p>
-    <button onclick="ping()">🔄 Ping Server</button>
-    <button onclick="checkEnv()">⚙️ Check ENV</button>
-  </div>
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
 
-  <div class="card hidden" id="emailPanel">
-    <h2>📩 Send Email</h2>
-    <form id="emailForm">
-      <label>To Email</label>
-      <input type="email" id="emailTo" required />
+    <div class="card">
+      <h2>🧠 Liam Dashboard</h2>
+      <p>Status: <span id="status">Checking...</span></p>
+      <button onclick="ping()">🔄 Ping Server</button>
+      <button onclick="checkEnv()">⚙️ Check ENV</button>
+    </div>
 
-      <label>Template</label>
-      <select id="template">
-        <option value="email_template.txt">Default Template</option>
-        <option value="email_body_plain.txt">Plain</option>
-        <option value="email_body_branded.txt">Branded</option>
-      </select>
+    <div class="card">
+      <h2>📩 Send Email</h2>
+      <form id="emailForm">
+        <label>To Email</label>
+        <input type="email" id="emailTo" required />
+        <label>Template</label>
+        <select id="template">
+          <option value="email_template.txt">Default</option>
+          <option value="email_body_plain.txt">Plain</option>
+          <option value="email_body_branded.txt">Branded</option>
+        </select>
+        <label>Optional Google Drive Link</label>
+        <input type="url" id="driveLink" placeholder="https://..." />
+        <button type="submit">📤 Send Email</button>
+      </form>
+      <p id="emailResult"></p>
+    </div>
 
-      <label>Optional Google Drive Link</label>
-      <input type="url" id="driveLink" placeholder="https://..." />
+    <div class="card">
+      <h2>🗃️ Memory Files – Liam, Eva, Radhika</h2>
+      <div id="memoryTables"></div>
+    </div>
 
-      <button type="submit">📤 Send Email</button>
-    </form>
-    <p id="emailResult"></p>
-  </div>
+    <div class="card">
+      <h2>💻 CLI Log</h2>
+      <pre id="cliLog"></pre>
+    </div>
 
-  <div class="card hidden" id="memoryPanel">
-    <h2>🗃️ Memory Files – Liam, Eva, Radhika</h2>
-    <div id="memoryTables"></div>
-  </div>
-
-  <div class="card hidden" id="logPanel">
-    <h2>💻 CLI Log</h2>
-    <pre id="cliLog"></pre>
   </div>
 
   <script>
-    async function auth() {
-      const username = document.getElementById('loginUser').value;
-      const password = document.getElementById('loginPass').value;
+    const VALID_TOKEN = "liam_authtoken_2025";
 
-      const res = await fetch('/auth', {
-        method: 'POST',
+    // Auto-login if token is present
+    if (localStorage.getItem("liam_token") === VALID_TOKEN) {
+      document.getElementById("loginCard").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      initDashboard();
+    }
+
+    async function login() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
+
+      const res = await fetch("/auth", {
+        method: "POST",
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ user, pass })
       });
 
-      const result = await res.json();
-      if (result.token) {
-        localStorage.setItem('liam-token', result.token);
-        loadPanel();
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem("liam_token", VALID_TOKEN);
+        document.getElementById("loginCard").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        initDashboard();
       } else {
-        document.getElementById('loginError').innerText = result.error || 'Invalid login';
+        document.getElementById("loginError").innerText = "❌ Invalid credentials.";
       }
+    }
+
+    function initDashboard() {
+      ping();
+      loadMemories();
     }
 
     async function ping() {
@@ -102,12 +118,16 @@
       log(JSON.stringify(json, null, 2));
     }
 
-    async function loadPanel() {
-      document.getElementById('loginBox').classList.add('hidden');
-      document.querySelectorAll('#panel, #emailPanel, #memoryPanel, #logPanel').forEach(el => el.classList.remove('hidden'));
-      ping();
-      loadMemories();
-    }
+    document.getElementById('emailForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const to = document.getElementById('emailTo').value;
+      const link = document.getElementById('driveLink').value || '';
+      const template = document.getElementById('template').value;
+      const res = await fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}&template=${template}`);
+      const msg = await res.text();
+      document.getElementById('emailResult').innerText = msg;
+      log(`[Email] ${msg}`);
+    });
 
     async function loadMemories() {
       const res = await fetch('/list-memories-all');
@@ -136,27 +156,6 @@
       el.textContent += `\n${msg}`;
       el.scrollTop = el.scrollHeight;
     }
-
-    // Auto-login with token
-    async function validateToken() {
-      const token = localStorage.getItem('liam-token');
-      if (!token) return;
-
-      const res = await fetch('/auth/validate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ token })
-      });
-
-      const json = await res.json();
-      if (json.valid) {
-        loadPanel();
-      } else {
-        localStorage.removeItem('liam-token');
-      }
-    }
-
-    validateToken();
   </script>
 
 </body>
