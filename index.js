@@ -29,6 +29,32 @@ function checkEnv(){
   return report;
 }
 
+const express  = require('express');
+const bodyParser = require('body-parser');
+...
+/* your other require lines */
+
+/* ------------- existing helpers (detectPersona, checkEnv, etc.) ------------- */
+
+/* ---- Google Drive helper: list ZIPs sitting in Liam Memories master folder ---- */
+const DRIVE_FOLDER_ID = process.env.LIAM_MEMORIES_FOLDER_ID;   // existing env var
+
+async function listDriveZips () {
+  const { google } = require('googleapis');
+  const auth = await require('@google-cloud/local-auth').getClient({
+    scopes: ['https://www.googleapis.com/auth/drive.readonly']
+  });
+  const drive = google.drive({ version: 'v3', auth });
+
+  const res = await drive.files.list({
+    q      : `'${DRIVE_FOLDER_ID}' in parents and mimeType='application/zip' and trashed=false`,
+    fields : 'files(id,name,modifiedTime)'
+  });
+  return res.data.files;   // [{ id, name, modifiedTime }]
+}
+
+/* --------- all your route definitions start below this point --------- */
+
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(bodyParser.json());
