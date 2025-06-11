@@ -2,107 +2,181 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Liam Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f9f9f9; }
-    .container { max-width: 1100px; margin: auto; }
-    h1 { color: #222; }
-    button { margin: 8px 8px 8px 0; padding: 10px 15px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-    th { background-color: #eee; }
-    .log, .status { margin-top: 20px; background: #fff; padding: 10px; border: 1px solid #ccc; }
-    .auth { margin-bottom: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #20232a;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 960px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    input, select, textarea, button {
+      padding: 10px;
+      margin: 5px 0 10px 0;
+      width: 100%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background: #f0f0f0;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .output {
+      white-space: pre-wrap;
+      background: #eee;
+      padding: 10px;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
+  <header><h1>Liam Control Dashboard</h1></header>
+
   <div class="container">
-    <h1>Liam Control Dashboard</h1>
 
-    <div class="auth">
-      <label for="token">Enter Access Token:</label>
-      <input type="password" id="token" />
-      <button onclick="saveToken()">Login</button>
+    <!-- 🧠 List Memories -->
+    <div class="card">
+      <h2>🧠 Unified Memory Files</h2>
+      <button onclick="listMemories()">List Memories</button>
+      <table id="memoryTable">
+        <thead>
+          <tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
 
-    <div class="controls">
-      <button onclick="listMemories()">🧠 List Memories</button>
-      <button onclick="sendEmail()">📤 Send Email</button>
-      <button onclick="uploadToUnified()">📂 Upload to Unified</button>
-      <button onclick="syncMemory()">🔄 Sync Memory</button>
+    <!-- 📤 Upload Memory -->
+    <div class="card">
+      <h2>📦 Upload Memory File (.zip or .json)</h2>
+      <input type="file" id="uploadFile" />
+      <button onclick="uploadFile()">Upload & Parse</button>
+      <pre id="uploadStatus" class="output">No file uploaded yet.</pre>
     </div>
 
-    <table id="memoryTable">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Name</th>
-          <th>Path</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div class="status">
-      <h3>🔐 System Health</h3>
-      <p id="statusOutput">Checking...</p>
+    <!-- 📧 Send Email -->
+    <div class="card">
+      <h2>📧 Send Email with File Link</h2>
+      <input type="email" id="emailTo" placeholder="Recipient email" />
+      <input type="text" id="emailLink" placeholder="Drive file link (https://...)" />
+      <select id="emailTemplate">
+        <option value="summary.txt">summary.txt</option>
+        <option value="intro.txt">intro.txt</option>
+        <option value="blank">-- No template --</option>
+      </select>
+      <textarea id="emailBody" rows="5" placeholder="Optional message body..."></textarea>
+      <button onclick="sendEmail()">Send Email</button>
+      <pre id="emailStatus" class="output"></pre>
     </div>
 
-    <div class="log">
-      <h3>📋 CLI Logs</h3>
-      <pre id="logOutput">No logs loaded yet.</pre>
+    <!-- 📄 Create Document -->
+    <div class="card">
+      <h2>📄 Create Google Doc from Template</h2>
+      <input type="text" id="docTemplate" placeholder="e.g. summary.txt" />
+      <button onclick="createDoc()">Create Doc</button>
+      <pre id="docStatus" class="output"></pre>
     </div>
+
+    <!-- 🛡️ Health Check -->
+    <div class="card">
+      <h2>🛡️ System Health</h2>
+      <button onclick="checkHealth()">Check ENV & Auth</button>
+      <pre id="healthStatus" class="output">Click "Check" to load status.</pre>
+    </div>
+
   </div>
 
   <script>
-    function saveToken() {
-      const token = document.getElementById('token').value;
-      if (token) {
-        localStorage.setItem('liamToken', token);
-        alert('Token saved. You can now access dashboard features.');
-      }
+    async function listMemories() {
+      const res = await fetch('/list-memories');
+      const data = await res.json();
+      const tbody = document.querySelector('#memoryTable tbody');
+      tbody.innerHTML = '';
+      (data.files || []).forEach(file => {
+        const row = `<tr>
+          <td>${new Date(file.modifiedTime).toLocaleString()}</td>
+          <td>${file.name}</td>
+          <td><a href="${file.webViewLink}" target="_blank">View</a></td>
+          <td>✔️</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
     }
 
-    function listMemories() {
-      fetch('/list-memories')
-        .then(res => res.json())
-        .then(data => {
-          const tbody = document.querySelector('#memoryTable tbody');
-          tbody.innerHTML = '';
-          data.files.forEach(file => {
-            const row = `<tr>
-              <td>${new Date(file.modifiedTime).toLocaleString()}</td>
-              <td>${file.name}</td>
-              <td><a href="${file.webViewLink}" target="_blank">View</a></td>
-              <td>✔️</td>
-            </tr>`;
-            tbody.innerHTML += row;
-          });
-        })
-        .catch(err => {
-          alert('Error fetching memory list');
-          console.error(err);
-        });
+    async function uploadFile() {
+      const file = document.getElementById('uploadFile').files[0];
+      if (!file) return alert('Please select a file.');
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/upload-memory', { method: 'POST', body: form });
+      const result = await res.json();
+      document.getElementById('uploadStatus').textContent = JSON.stringify(result, null, 2);
     }
 
-    function sendEmail() {
-      const to = prompt('Enter recipient email:');
-      const link = prompt('Enter Drive link:');
-      if (!to || !link) return alert('Both email and link are required.');
-      fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}`)
-        .then(res => res.text())
-        .then(alert)
-        .catch(err => alert('Error sending email.'));
+    async function sendEmail() {
+      const to = document.getElementById('emailTo').value;
+      const link = document.getElementById('emailLink').value;
+      const body = document.getElementById('emailBody').value;
+      const template = document.getElementById('emailTemplate').value;
+      const res = await fetch('/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, link, body, template })
+      });
+      const msg = await res.text();
+      document.getElementById('emailStatus').textContent = msg;
     }
 
-    function uploadToUnified() {
-      alert('🚧 Upload handler to be added in memory-handler.js');
+    async function createDoc() {
+      const template = document.getElementById('docTemplate').value;
+      const res = await fetch(`/create-doc?template=${encodeURIComponent(template)}`);
+      const result = await res.json();
+      document.getElementById('docStatus').innerHTML =
+        result.link ? `✅ <a href="${result.link}" target="_blank">View Document</a>` : '❌ Failed to create';
     }
 
-    function syncMemory() {
-      alert('🚧 Sync memory handler pending...');
+    async function checkHealth() {
+      const res = await fetch('/check-env');
+      const data = await res.json();
+      document.getElementById('healthStatus').textContent = JSON.stringify(data, null, 2);
     }
   </script>
 </body>
