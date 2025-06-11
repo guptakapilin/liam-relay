@@ -274,7 +274,6 @@ function hmac(query) {
 }
 
 /* ---- Google Drive helper: list ZIPs in Liam Memories folder ---- */
-const DRIVE_FOLDER_ID = process.env.DRIVE_LIAM_MEMORIES;  // add in .env
 async function listDriveZips() {
   const { google } = require('googleapis');
   const auth = await require('@google-cloud/local-auth').getClient({
