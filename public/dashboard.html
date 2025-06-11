@@ -7,7 +7,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
     body { padding: 20px; }
-    .hidden { display: none; }
     .token-protected { display: none; }
     .tab-content { margin-top: 20px; }
     .nav-tabs .nav-link.active { background-color: #0d6efd; color: #fff; }
@@ -16,33 +15,30 @@
 <body>
   <div id="login-section" class="container">
     <h3 class="mb-3">Liam Panel Login</h3>
-    <div class="mb-3">
-      <input type="text" id="username" class="form-control" placeholder="Username" />
-    </div>
-    <div class="mb-3">
-      <input type="password" id="password" class="form-control" placeholder="Password" />
-    </div>
+    <div class="mb-3"><input type="text" id="username" class="form-control" placeholder="Username" /></div>
+    <div class="mb-3"><input type="password" id="password" class="form-control" placeholder="Password" /></div>
     <button class="btn btn-primary" onclick="login()">Login</button>
     <div id="login-error" class="text-danger mt-2"></div>
   </div>
 
-  <div id="dashboard-section" class="token-protected">
-    <ul class="nav nav-tabs" id="dashboardTabs">
-      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory Files</a></li>
+  <div id="dashboard-section" class="token-protected container">
+    <ul class="nav nav-tabs">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory</a></li>
       <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#email">Send Email</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health Monitor</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#launch">Launch Action</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health</a></li>
       <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">CLI Logs</a></li>
     </ul>
 
     <div class="tab-content">
-      <!-- Memory Upload Tab -->
+
+      <!-- Memory Upload -->
       <div class="tab-pane fade show active" id="memory">
         <h5 class="mt-3">Upload Memory ZIP</h5>
         <input type="file" id="memoryFile" class="form-control mb-2"/>
         <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
         <div id="uploadStatus" class="mt-2"></div>
-
-        <h5 class="mt-4">Parsed Memory Files</h5>
+        <h5 class="mt-4">Parsed Files</h5>
         <table class="table table-bordered" id="memoryTable">
           <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
           <tbody></tbody>
@@ -53,16 +49,10 @@
       <!-- Email Tab -->
       <div class="tab-pane fade" id="email">
         <h5 class="mt-3">Compose Email</h5>
-        <div class="mb-2">
-          <input type="email" id="emailTo" class="form-control" placeholder="Recipient Email" />
-        </div>
-        <div class="mb-2">
-          <input type="text" id="emailSubject" class="form-control" placeholder="Subject" />
-        </div>
-        <div class="mb-2">
-          <textarea id="emailBody" rows="5" class="form-control" placeholder="Body Text"></textarea>
-        </div>
-        <div class="mb-2 form-check">
+        <input type="email" id="emailTo" class="form-control mb-2" placeholder="Recipient Email" />
+        <input type="text" id="emailSubject" class="form-control mb-2" placeholder="Subject" />
+        <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
+        <div class="form-check mb-2">
           <input type="checkbox" class="form-check-input" id="includeLink" />
           <label class="form-check-label" for="includeLink">Include Optional Link</label>
         </div>
@@ -70,19 +60,31 @@
         <div id="emailStatus" class="mt-2"></div>
       </div>
 
-      <!-- Health Tab -->
+      <!-- Launch Action Tab -->
+      <div class="tab-pane fade" id="launch">
+        <h5 class="mt-3">Run Quick Action</h5>
+        <select id="actionSelector" class="form-select mb-2">
+          <option value="ping">Ping Server</option>
+          <option value="send-email">Send Predefined Email</option>
+        </select>
+        <button class="btn btn-warning" onclick="runLaunchAction()">Launch</button>
+        <pre id="launchResult" class="mt-3"></pre>
+      </div>
+
+      <!-- Health -->
       <div class="tab-pane fade" id="health">
         <h5 class="mt-3">Backend Status</h5>
         <pre id="healthStatus">Loading...</pre>
         <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
       </div>
 
-      <!-- CLI Logs Tab -->
+      <!-- Logs -->
       <div class="tab-pane fade" id="logs">
-        <h5 class="mt-3">Recent Logs</h5>
+        <h5 class="mt-3">Recent CLI Logs</h5>
         <pre id="cliLogs">Loading...</pre>
         <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
       </div>
+
     </div>
   </div>
 
@@ -90,11 +92,7 @@
   <script>
     const API = location.origin;
     const TOKEN_KEY = 'liam_token';
-
     const getToken = () => localStorage.getItem(TOKEN_KEY);
-    const setToken = token => localStorage.setItem(TOKEN_KEY, token);
-    const clearToken = () => localStorage.removeItem(TOKEN_KEY);
-
     const headers = () => ({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${getToken()}`
@@ -103,9 +101,7 @@
     const showDashboard = () => {
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('dashboard-section').style.display = 'block';
-      loadMemories();
-      loadHealth();
-      loadLogs();
+      loadMemories(); loadHealth(); loadLogs();
     };
 
     async function login() {
@@ -119,7 +115,7 @@
 
       if (res.ok) {
         const { token } = await res.json();
-        setToken(token);
+        localStorage.setItem(TOKEN_KEY, token);
         showDashboard();
       } else {
         document.getElementById('login-error').innerText = 'Invalid credentials.';
@@ -157,21 +153,50 @@
     }
 
     async function sendEmail() {
-      const payload = {
-        to: document.getElementById('emailTo').value,
-        subject: document.getElementById('emailSubject').value,
-        body: document.getElementById('emailBody').value,
-        includeLink: document.getElementById('includeLink').checked
-      };
+      const to = document.getElementById('emailTo').value;
+      const subject = document.getElementById('emailSubject').value;
+      const body = document.getElementById('emailBody').value;
+      const includeLink = document.getElementById('includeLink').checked;
 
       const res = await fetch(`${API}/send-email`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ to, subject, body, includeLink })
+      });
+
+      const result = await res.json();
+      document.getElementById('emailStatus').innerText = result.status || result.error;
+
+      // 🧼 Clear form on success or error
+      if (res.ok || res.status >= 400) {
+        document.getElementById('emailTo').value = '';
+        document.getElementById('emailSubject').value = '';
+        document.getElementById('emailBody').value = '';
+        document.getElementById('includeLink').checked = false;
+      }
+    }
+
+    async function runLaunchAction() {
+      const selected = document.getElementById('actionSelector').value;
+      let payload = { action: selected };
+
+      if (selected === 'send-email') {
+        payload.data = {
+          to: "guptakapilin@gmail.com",
+          subject: "Liam Launch Email",
+          body: "This email was sent via launch-action tab.",
+          includeLink: true
+        };
+      }
+
+      const res = await fetch(`${API}/launch-action`, {
         method: 'POST',
         headers: headers(),
         body: JSON.stringify(payload)
       });
 
       const result = await res.json();
-      document.getElementById('emailStatus').innerText = result.status || result.error;
+      document.getElementById('launchResult').innerText = JSON.stringify(result, null, 2);
     }
 
     async function loadHealth() {
@@ -186,7 +211,6 @@
       document.getElementById('cliLogs').innerText = data.logs.join('\n');
     }
 
-    // Auto-login if token exists
     if (getToken()) showDashboard();
   </script>
 </body>
