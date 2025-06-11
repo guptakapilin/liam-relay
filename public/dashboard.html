@@ -96,7 +96,7 @@
 
   <input id="linkField" class="form-control mb-2" placeholder="https://..." style="display:none"/>
 
-  <button class="btn btn-primary" onclick="sendEmail()">Send Email</button>
+  <button type="button" class="btn btn-primary" onclick="sendEmail()">Send Email</button>
   <div id="emailStatus" class="small mt-2"></div>
 </div>
 
@@ -207,13 +207,6 @@ async function loadMemories(){
   const r=await fetch(API+'/list-memories',{headers:headers()});const d=await r.json();
   const tbody=memoryTable.querySelector('tbody');tbody.innerHTML='';
   d.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;tbody.appendChild(tr)});
-}
-/* ---------- Email ---------- */
-async function sendEmail(){
-  const to=emailTo.value,subject=emailSubject.value,body=emailBody.value,includeLink=includeLink.checked;
-  const r=await fetch(API+'/send-email',{method:'POST',headers:headers(),body:JSON.stringify({to,subject,body,includeLink})});
-  const j=await r.json();emailStatus.innerText=j.status||j.error;
-  emailTo.value='';emailSubject.value='';emailBody.value='';includeLink.checked=false;
 }
 /* ---------- Launch-Action ---------- */
 async function runLaunchAction(){
