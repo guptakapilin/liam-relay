@@ -1,132 +1,170 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Liam Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Liam Control Panel</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-    h2 { margin-top: 30px; }
-    input, textarea, button, select { margin: 5px 0; padding: 8px; width: 100%; max-width: 500px; }
-    table { border-collapse: collapse; margin-top: 20px; width: 100%; max-width: 1000px; }
-    td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    #loginBox, #mainDashboard { max-width: 600px; margin: auto; }
-    #mainDashboard { display: none; }
-    .hidden { display: none; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background: #333;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+    }
+    nav {
+      display: flex;
+      background: #555;
+    }
+    nav button {
+      flex: 1;
+      padding: 10px;
+      background: #555;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #777;
+    }
+    section {
+      padding: 20px;
+      display: none;
+    }
+    section.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    .status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <div id="loginBox">
-    <h2>🔐 Liam Login</h2>
-    <input id="loginUser" placeholder="Username" />
-    <input id="loginPass" type="password" placeholder="Password" />
-    <button onclick="doLogin()">Login</button>
-    <div id="loginStatus"></div>
-  </div>
+  <header>
+    <h1>🧠 Liam Control Panel</h1>
+  </header>
+  <nav>
+    <button onclick="showTab('email')">Send Email</button>
+    <button onclick="showTab('memory')">Memory Upload</button>
+    <button onclick="showTab('health')">Health Check</button>
+    <button onclick="showTab('logs')">Logs</button>
+  </nav>
 
-  <div id="mainDashboard">
-    <h2>📨 Send Email</h2>
-    <input id="emailTo" placeholder="To (email)" />
-    <input id="emailSubject" placeholder="Subject" />
-    <textarea id="emailBody" placeholder="Body" rows="5"></textarea>
-    <label><input type="checkbox" id="includeLink" onchange="toggleLinkField()"> Include Link</label>
-    <input type="text" id="linkField" class="hidden" placeholder="Paste optional link" />
-    <button onclick="sendEmail()">Send Email</button>
-    <div id="emailStatus"></div>
+  <section id="email">
+    <h2>📧 Send Email</h2>
+    <input id="emailTo" placeholder="To"><br>
+    <input id="emailSubject" placeholder="Subject"><br>
+    <textarea id="emailBody" rows="5" placeholder="Body"></textarea><br>
+    <input type="checkbox" id="includeLink" onclick="toggleLinkField()"> Include optional link<br>
+    <input id="linkField" placeholder="Paste optional link" style="display:none;"><br>
+    <button onclick="sendEmail()">Send</button>
+    <div class="status" id="emailStatus"></div>
+  </section>
 
-    <h2>🧠 Upload Memory</h2>
-    <input type="file" id="memoryFile" accept=".zip" />
+  <section id="memory">
+    <h2>📦 Upload Memory</h2>
+    <input type="file" id="memoryFile"><br>
     <button onclick="uploadMemory()">Upload</button>
-    <div id="uploadStatus"></div>
+    <div class="status" id="uploadStatus"></div>
 
-    <h2>⚡ Quick Upload</h2>
-    <input type="file" id="quickZip" accept=".zip" />
+    <h3>Quick Upload</h3>
+    <input type="file" id="quickZip"><br>
     <button onclick="quickUpload()">Quick Upload</button>
-    <div id="quickZipStatus"></div>
+    <div class="status" id="quickZipStatus"></div>
 
-    <h2>📋 Memory Files</h2>
-    <button onclick="loadMemories()">🔄 Refresh List</button>
+    <button onclick="loadMemories()">🔁 Refresh List</button>
     <table id="memoryTable">
       <thead>
         <tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>
       </thead>
       <tbody></tbody>
     </table>
+  </section>
 
-    <h2>🧪 Health Check</h2>
-    <button onclick="checkHealth()">Run Check</button>
-    <pre id="healthStatus"></pre>
-  </div>
+  <section id="health">
+    <h2>🩺 System Health</h2>
+    <button onclick="checkHealth()">Ping</button>
+    <div class="status" id="healthStatus"></div>
+  </section>
 
-  <!-- ERUDA DEBUGGER FOR IPAD -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+  <section id="logs">
+    <h2>📜 Logs</h2>
+    <button onclick="loadLogs()">Refresh Logs</button>
+    <pre id="logOutput" style="background:#eee;padding:10px;height:300px;overflow:auto;"></pre>
+  </section>
 
   <script>
     const API = '';
     const TOKEN_KEY = 'liamToken';
 
-    function headers() {
-      return { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
+    function showTab(id){
+      document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
     }
 
-    function toggleLinkField() {
-      const field = document.getElementById('linkField');
-      field.classList.toggle('hidden', !document.getElementById('includeLink').checked);
+    function headers(){
+      return { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEY)}`, 'Content-Type': 'application/json' };
     }
 
-    async function doLogin() {
-      const user = document.getElementById('loginUser').value.trim();
-      const pass = document.getElementById('loginPass').value.trim();
-      const r = await fetch(API + '/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, pass })
-      });
-      const j = await r.json();
-      if (r.ok) {
-        localStorage.setItem(TOKEN_KEY, j.token);
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('mainDashboard').style.display = 'block';
-        loadMemories();
-      } else {
-        document.getElementById('loginStatus').innerText = j.error || 'Login failed';
-      }
+    function toggleLinkField(){
+      const chk = document.getElementById('includeLink');
+      document.getElementById('linkField').style.display = chk.checked ? 'block' : 'none';
     }
 
-    async function sendEmail() {
+    async function sendEmail(){
       const to = emailTo.value.trim();
       const subject = emailSubject.value.trim();
       const body = emailBody.value;
       const includeL = includeLink.checked;
       const link = linkField.value.trim();
-      if (!to || !subject || !body) {
+
+      if(!to || !subject || !body){
         emailStatus.innerText = '❌ Fill To/Subject/Body';
         return;
       }
+
       const payload = { to, subject, body, includeLink: includeL, link };
-      try {
-        const r = await fetch(API + '/send-email', {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify(payload)
-        });
-        const j = await r.json();
-        emailStatus.innerText = j.status || ('❌ ' + j.error);
-        if (r.ok) {
-          emailTo.value = ''; emailSubject.value = ''; emailBody.value = '';
-          includeLink.checked = false; linkField.value = ''; linkField.classList.add('hidden');
-        }
-      } catch (e) {
-        emailStatus.innerText = '❌ Error: ' + e.message;
-        console.error(e);
+
+      const r = await fetch(API + '/send-email', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload)
+      });
+
+      const j = await r.json();
+      emailStatus.innerText = j.status || ('❌ ' + j.error);
+
+      if(r.ok){
+        emailTo.value = '';
+        emailSubject.value = '';
+        emailBody.value = '';
+        includeLink.checked = false;
+        linkField.style.display = 'none';
+        linkField.value = '';
       }
     }
 
-    async function uploadMemory() {
+    async function uploadMemory(){
       const f = memoryFile.files[0];
-      if (!f) return alert('Choose ZIP');
-      const fd = new FormData(); fd.append('file', f);
+      if(!f) return alert('Choose ZIP');
+      const fd = new FormData();
+      fd.append('file', f);
       const r = await fetch(API + '/upload-memory', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
@@ -134,14 +172,15 @@
       });
       const j = await r.json();
       uploadStatus.innerText = j.status || j.error;
-      if (j.status) loadMemories();
+      if(j.status) loadMemories();
       memoryFile.value = '';
     }
 
-    async function quickUpload() {
+    async function quickUpload(){
       const f = quickZip.files[0];
-      if (!f) return alert('Choose ZIP');
-      const fd = new FormData(); fd.append('file', f);
+      if(!f) return alert('Choose ZIP');
+      const fd = new FormData();
+      fd.append('file', f);
       const r = await fetch(API + '/upload-memory', {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
@@ -149,15 +188,21 @@
       });
       const j = await r.json();
       quickZipStatus.innerText = j.status || j.error;
-      if (j.status) loadMemories();
+      if(j.status) loadMemories();
       quickZip.value = '';
     }
 
-    async function loadMemories() {
+    async function loadMemories(){
       const r = await fetch(API + '/list-memories', { headers: headers() });
       const d = await r.json();
       const tbody = memoryTable.querySelector('tbody');
       tbody.innerHTML = '';
+
+      if (!Array.isArray(d)) {
+        tbody.innerHTML = '<tr><td colspan="4">❌ Invalid memory data</td></tr>';
+        return;
+      }
+
       d.forEach(row => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;
@@ -165,11 +210,20 @@
       });
     }
 
-    async function checkHealth() {
+    async function checkHealth(){
       const r = await fetch(API + '/health', { headers: headers() });
       const j = await r.json();
-      healthStatus.innerText = JSON.stringify(j, null, 2);
+      healthStatus.innerText = `🧠 Brain is live | Uptime: ${j.uptimeMinutes} min`;
     }
+
+    async function loadLogs(){
+      const r = await fetch(API + '/logs', { headers: headers() });
+      const t = await r.text();
+      logOutput.textContent = t;
+    }
+
+    // Auto-show email tab on load
+    showTab('email');
   </script>
 </body>
 </html>
