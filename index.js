@@ -155,3 +155,11 @@ app.post('/upload-drive', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
 });
+
+app.get('/ping', (req, res) => {
+  return res.status(200).send('Liam is alive. 🧠');
+});
+
+app.get('/', (req, res) => {
+  res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
+});
