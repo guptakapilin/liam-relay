@@ -186,6 +186,52 @@ app.post('/upload-drive', async (req, res) => {
     return res.status(500).json({ error: 'Drive upload failed' });
   }
 });
+const loadSyncLog = require('./utils/load-sync-log');
+
+app.get('/sync-memories', async (req, res) => {
+  const auth = await getAuthClient([
+    'https://www.googleapis.com/auth/drive',
+  ]);
+  const drive = google.drive({ version: 'v3', auth });
+
+  const syncLog = loadSyncLog();
+  const updatedLog = { ...syncLog };
+  let synced = [];
+
+  for (const [agent, config] of Object.entries(syncLog.agents)) {
+    const archivesFolderId = config.archivesFolderId;
+    const unifiedFolderId = config.unifiedFolderId;
+    const alreadySyncedIds = new Set(config.archives || []);
+
+    const files = await drive.files.list({
+      q: `'${archivesFolderId}' in parents and trashed = false`,
+      fields: 'files(id, name, mimeType)',
+    });
+
+    for (const file of files.data.files) {
+      if (alreadySyncedIds.has(file.id)) continue;
+
+      // Copy file to Unified folder
+      await drive.files.copy({
+        fileId: file.id,
+        requestBody: {
+          name: file.name,
+          parents: [unifiedFolderId],
+        },
+      });
+
+      synced.push({ agent, file: file.name });
+      updatedLog.agents[agent].archives.push(file.id);
+    }
+  }
+
+  // Update log file
+  updatedLog.lastUpdated = new Date().toISOString();
+  const logPath = path.join(__dirname, 'data/sync-log.json');
+  fs.writeFileSync(logPath, JSON.stringify(updatedLog, null, 2));
+
+  res.status(200).json({ status: 'sync-complete', synced });
+});
 
 app.listen(PORT, () => {
   console.log(`✅ Liam-Mailer v4.7 running on port ${PORT}`);
