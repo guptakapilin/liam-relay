@@ -3,6 +3,7 @@ const path = require('path');
 
 const SYNC_LOG_PATH = path.join(__dirname, 'sync-log.json');
 
+// Default fallback if sync-log.json is missing
 let syncLog = {
   lastUpdated: new Date().toISOString(),
   agents: {
@@ -17,18 +18,18 @@ let syncLog = {
     Radhika: {
       archives: [],
       unifiedFolderId: process.env.RadhikaUnified || '',
-    },
-  },
+    }
+  }
 };
 
-// ✅ Load sync log from disk or fallback to ENV
+// ✅ Load sync-log.json from disk, fallback to default if fails
 const loadSyncLog = () => {
   try {
     const raw = fs.readFileSync(SYNC_LOG_PATH, 'utf8');
     syncLog = JSON.parse(raw);
     console.log('✅ Loaded sync-log.json');
   } catch (err) {
-    console.warn('⚠️ sync-log.json not found. Using fallback ENV values.');
+    console.warn('⚠️ sync-log.json not found or invalid. Using fallback.');
   }
 };
 
@@ -39,17 +40,17 @@ const saveSyncLog = () => {
   console.log('💾 sync-log.json updated');
 };
 
-// ✅ Get all agent info
+// ✅ Get full log
 const getSyncLog = () => syncLog;
 
-// ✅ Utility: Get Unified Folder ID for agent
+// ✅ Get folder ID by agent
 const getUnifiedFolderId = (agent) => {
-  return syncLog.agents[agent]?.unifiedFolderId || '';
+  return syncLog.agents?.[agent]?.unifiedFolderId || '';
 };
 
 module.exports = {
   loadSyncLog,
   saveSyncLog,
   getSyncLog,
-  getUnifiedFolderId,
+  getUnifiedFolderId
 };
