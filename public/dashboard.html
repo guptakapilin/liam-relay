@@ -3,160 +3,191 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Liam Control Panel</title>
+  <title>Liam Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    body { font-family: Arial; background: #f0f2f5; margin: 0; padding: 0; }
-    .card { background: #fff; padding: 20px; margin: 20px auto; border-radius: 8px; box-shadow: 0 0 5px #ccc; width: 90%; max-width: 800px; }
-    h2 { margin-top: 0; }
-    label { display: block; margin-top: 10px; }
-    input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; }
-    button { margin-top: 10px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    pre { background: #111; color: #0f0; padding: 10px; height: 200px; overflow: auto; }
+    body { padding: 20px; }
     .hidden { display: none; }
-    .mem-table { width: 100%; border-collapse: collapse; }
-    .mem-table th, .mem-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    .token-protected { display: none; }
+    .tab-content { margin-top: 20px; }
+    .nav-tabs .nav-link.active { background-color: #0d6efd; color: #fff; }
   </style>
 </head>
 <body>
-
-  <!-- LOGIN SCREEN -->
-  <div class="card" id="loginCard">
-    <h2>🔐 Panel Login</h2>
-    <label>Username</label>
-    <input type="text" id="loginUser" placeholder="Enter username" />
-    <label>Password</label>
-    <input type="password" id="loginPass" placeholder="Enter password" />
-    <button onclick="login()">Login</button>
-    <p id="loginError" style="color: red;"></p>
+  <div id="login-section" class="container">
+    <h3 class="mb-3">Liam Panel Login</h3>
+    <div class="mb-3">
+      <input type="text" id="username" class="form-control" placeholder="Username" />
+    </div>
+    <div class="mb-3">
+      <input type="password" id="password" class="form-control" placeholder="Password" />
+    </div>
+    <button class="btn btn-primary" onclick="login()">Login</button>
+    <div id="login-error" class="text-danger mt-2"></div>
   </div>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="hidden">
+  <div id="dashboard-section" class="token-protected">
+    <ul class="nav nav-tabs" id="dashboardTabs">
+      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory Files</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#email">Send Email</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health Monitor</a></li>
+      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">CLI Logs</a></li>
+    </ul>
 
-    <div class="card">
-      <h2>🧠 Liam Dashboard</h2>
-      <p>Status: <span id="status">Checking...</span></p>
-      <button onclick="ping()">🔄 Ping Server</button>
-      <button onclick="checkEnv()">⚙️ Check ENV</button>
+    <div class="tab-content">
+      <!-- Memory Upload Tab -->
+      <div class="tab-pane fade show active" id="memory">
+        <h5 class="mt-3">Upload Memory ZIP</h5>
+        <input type="file" id="memoryFile" class="form-control mb-2"/>
+        <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
+        <div id="uploadStatus" class="mt-2"></div>
+
+        <h5 class="mt-4">Parsed Memory Files</h5>
+        <table class="table table-bordered" id="memoryTable">
+          <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
+      </div>
+
+      <!-- Email Tab -->
+      <div class="tab-pane fade" id="email">
+        <h5 class="mt-3">Compose Email</h5>
+        <div class="mb-2">
+          <input type="email" id="emailTo" class="form-control" placeholder="Recipient Email" />
+        </div>
+        <div class="mb-2">
+          <input type="text" id="emailSubject" class="form-control" placeholder="Subject" />
+        </div>
+        <div class="mb-2">
+          <textarea id="emailBody" rows="5" class="form-control" placeholder="Body Text"></textarea>
+        </div>
+        <div class="mb-2 form-check">
+          <input type="checkbox" class="form-check-input" id="includeLink" />
+          <label class="form-check-label" for="includeLink">Include Optional Link</label>
+        </div>
+        <button class="btn btn-primary" onclick="sendEmail()">Send Email</button>
+        <div id="emailStatus" class="mt-2"></div>
+      </div>
+
+      <!-- Health Tab -->
+      <div class="tab-pane fade" id="health">
+        <h5 class="mt-3">Backend Status</h5>
+        <pre id="healthStatus">Loading...</pre>
+        <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
+      </div>
+
+      <!-- CLI Logs Tab -->
+      <div class="tab-pane fade" id="logs">
+        <h5 class="mt-3">Recent Logs</h5>
+        <pre id="cliLogs">Loading...</pre>
+        <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
+      </div>
     </div>
-
-    <div class="card">
-      <h2>📩 Send Email</h2>
-      <form id="emailForm">
-        <label>To Email</label>
-        <input type="email" id="emailTo" required />
-        <label>Template</label>
-        <select id="template">
-          <option value="email_template.txt">Default</option>
-          <option value="email_body_plain.txt">Plain</option>
-          <option value="email_body_branded.txt">Branded</option>
-        </select>
-        <label>Optional Google Drive Link</label>
-        <input type="url" id="driveLink" placeholder="https://..." />
-        <button type="submit">📤 Send Email</button>
-      </form>
-      <p id="emailResult"></p>
-    </div>
-
-    <div class="card">
-      <h2>🗃️ Memory Files – Liam, Eva, Radhika</h2>
-      <div id="memoryTables"></div>
-    </div>
-
-    <div class="card">
-      <h2>💻 CLI Log</h2>
-      <pre id="cliLog"></pre>
-    </div>
-
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const VALID_TOKEN = "liam_authtoken_2025";
+    const API = location.origin;
+    const TOKEN_KEY = 'liam_token';
 
-    // Auto-login if token is present
-    if (localStorage.getItem("liam_token") === VALID_TOKEN) {
-      document.getElementById("loginCard").classList.add("hidden");
-      document.getElementById("dashboard").classList.remove("hidden");
-      initDashboard();
-    }
+    const getToken = () => localStorage.getItem(TOKEN_KEY);
+    const setToken = token => localStorage.setItem(TOKEN_KEY, token);
+    const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+    const headers = () => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`
+    });
+
+    const showDashboard = () => {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('dashboard-section').style.display = 'block';
+      loadMemories();
+      loadHealth();
+      loadLogs();
+    };
 
     async function login() {
-      const user = document.getElementById('loginUser').value.trim();
-      const pass = document.getElementById('loginPass').value.trim();
-
-      const res = await fetch("/auth", {
-        method: "POST",
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch(`${API}/auth`, {
+        method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ user, pass })
+        body: JSON.stringify({ username, password })
       });
 
-      const json = await res.json();
-      if (json.success) {
-        localStorage.setItem("liam_token", VALID_TOKEN);
-        document.getElementById("loginCard").classList.add("hidden");
-        document.getElementById("dashboard").classList.remove("hidden");
-        initDashboard();
+      if (res.ok) {
+        const { token } = await res.json();
+        setToken(token);
+        showDashboard();
       } else {
-        document.getElementById("loginError").innerText = "❌ Invalid credentials.";
+        document.getElementById('login-error').innerText = 'Invalid credentials.';
       }
     }
 
-    function initDashboard() {
-      ping();
+    async function uploadMemory() {
+      const file = document.getElementById('memoryFile').files[0];
+      if (!file) return alert('Please choose a file.');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${API}/upload-memory`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData
+      });
+
+      const result = await res.json();
+      document.getElementById('uploadStatus').innerText = result.status || result.error;
       loadMemories();
     }
 
-    async function ping() {
-      const res = await fetch('/ping');
-      document.getElementById('status').innerText = await res.text();
-    }
-
-    async function checkEnv() {
-      const res = await fetch('/check-env');
-      const json = await res.json();
-      log(JSON.stringify(json, null, 2));
-    }
-
-    document.getElementById('emailForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const to = document.getElementById('emailTo').value;
-      const link = document.getElementById('driveLink').value || '';
-      const template = document.getElementById('template').value;
-      const res = await fetch(`/send-email?to=${encodeURIComponent(to)}&link=${encodeURIComponent(link)}&template=${template}`);
-      const msg = await res.text();
-      document.getElementById('emailResult').innerText = msg;
-      log(`[Email] ${msg}`);
-    });
-
     async function loadMemories() {
-      const res = await fetch('/list-memories-all');
-      const json = await res.json();
-      let html = '';
-
-      for (const agent of ['Liam', 'Eva', 'Radhika']) {
-        const files = json[agent] || [];
-        html += `<h3>${agent}</h3><table class="mem-table"><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>`;
-        for (const f of files) {
-          html += `<tr>
-            <td>${new Date(f.modifiedTime).toLocaleString()}</td>
-            <td>${f.name}</td>
-            <td><a href="${f.webViewLink}" target="_blank">Open</a></td>
-            <td>${f.status || 'Pending'}</td>
-          </tr>`;
-        }
-        html += `</table>`;
-      }
-
-      document.getElementById('memoryTables').innerHTML = html;
+      const res = await fetch(`${API}/list-memories`, { headers: headers() });
+      const data = await res.json();
+      const tbody = document.querySelector('#memoryTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;
+        tbody.appendChild(tr);
+      });
     }
 
-    function log(msg) {
-      const el = document.getElementById('cliLog');
-      el.textContent += `\n${msg}`;
-      el.scrollTop = el.scrollHeight;
+    async function sendEmail() {
+      const payload = {
+        to: document.getElementById('emailTo').value,
+        subject: document.getElementById('emailSubject').value,
+        body: document.getElementById('emailBody').value,
+        includeLink: document.getElementById('includeLink').checked
+      };
+
+      const res = await fetch(`${API}/send-email`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      document.getElementById('emailStatus').innerText = result.status || result.error;
     }
+
+    async function loadHealth() {
+      const res = await fetch(`${API}/health`, { headers: headers() });
+      const data = await res.json();
+      document.getElementById('healthStatus').innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function loadLogs() {
+      const res = await fetch(`${API}/cli-logs`, { headers: headers() });
+      const data = await res.json();
+      document.getElementById('cliLogs').innerText = data.logs.join('\n');
+    }
+
+    // Auto-login if token exists
+    if (getToken()) showDashboard();
   </script>
-
 </body>
 </html>
