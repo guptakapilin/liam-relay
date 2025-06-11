@@ -66,7 +66,7 @@ app.get('/create-doc', async (req, res) => {
 
   try {
     const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
+      keyfilePath: '/etc/secrets/credentials.json',
       scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents'],
     });
 
@@ -108,10 +108,12 @@ app.get('/create-doc', async (req, res) => {
     return res.status(500).send('Failed to create document.');
   }
 });
+
+// === /list-memories ===
 app.get('/list-memories', async (req, res) => {
   try {
     const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
+      keyfilePath: '/etc/secrets/credentials.json',
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
@@ -142,7 +144,7 @@ app.post('/upload-drive', async (req, res) => {
 
   try {
     const auth = await authenticate({
-      keyfilePath: path.join(__dirname, 'credentials.json'),
+      keyfilePath: '/etc/secrets/credentials.json',
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
 
@@ -150,7 +152,7 @@ app.post('/upload-drive', async (req, res) => {
 
     const fileMetadata = {
       name: fileName,
-      parents: [process.env.LIAM_MEMORIES_FOLDER_ID], // 🟢 USE MEMORY FOLDER
+      parents: [process.env.LIAM_MEMORIES_FOLDER_ID],
     };
 
     const media = {
@@ -175,14 +177,15 @@ app.post('/upload-drive', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
-});
-
+// === /ping and root ===
 app.get('/ping', (req, res) => {
   return res.status(200).send('Liam is alive. 🧠');
 });
 
 app.get('/', (req, res) => {
   res.send('✅ Liam-Mailer v4.6 is Live. Use /ping to test uptime.');
+});
+
+app.listen(PORT, () => {
+  console.log(`Liam-Mailer v4.6 running on port ${PORT}`);
 });
