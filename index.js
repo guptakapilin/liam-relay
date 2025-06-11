@@ -225,3 +225,81 @@ app.post('/upload-drive', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Liam-Mailer v4.6 running on port ${PORT}`);
 });
+
+// ========== Archive Sync Routine ==========
+const SYNC_LOG_PATH = path.join(__dirname, 'data', 'sync-log.json');
+let syncLog = {};
+
+const loadSyncLog = () => {
+  try {
+    syncLog = JSON.parse(fs.readFileSync(SYNC_LOG_PATH, 'utf8'));
+    console.log('✅ Sync log loaded');
+  } catch (e) {
+    console.warn('⚠️ Failed to load sync-log.json. Creating new structure.');
+    syncLog = {
+      Liam: { archiveFolder: '', unifiedFolder: '', lastSynced: '', syncedFiles: [] },
+      Eva: { archiveFolder: '', unifiedFolder: '', lastSynced: '', syncedFiles: [] },
+      Radhika: { archiveFolder: '', unifiedFolder: '', lastSynced: '', syncedFiles: [] },
+    };
+  }
+};
+
+const saveSyncLog = () => {
+  fs.writeFileSync(SYNC_LOG_PATH, JSON.stringify(syncLog, null, 2));
+};
+
+loadSyncLog();
+
+app.get('/sync-archives', async (req, res) => {
+  const auth = await getAuthClient(['https://www.googleapis.com/auth/drive']);
+  const drive = google.drive({ version: 'v3', auth });
+
+  const syncResults = {};
+
+  for (const persona of ['Liam', 'Eva', 'Radhika']) {
+    const personaLog = syncLog[persona];
+    const archiveId = personaLog.archiveFolder;
+    const unifiedId = personaLog.unifiedFolder;
+    const alreadySynced = new Set(personaLog.syncedFiles || []);
+    const newSynced = [];
+
+    if (!archiveId || !unifiedId) continue;
+
+    const files = await drive.files.list({
+      q: `'${archiveId}' in parents and trashed = false`,
+      fields: 'files(id, name)',
+    });
+
+    for (const file of files.data.files) {
+      if (alreadySynced.has(file.id)) continue;
+
+      try {
+        await drive.files.copy({
+          fileId: file.id,
+          requestBody: {
+            name: file.name,
+            parents: [unifiedId],
+          },
+        });
+
+        newSynced.push(file.id);
+        console.log(`✅ Copied ${file.name} to ${persona} Unified`);
+      } catch (err) {
+        console.warn(`⚠️ Failed to copy ${file.name}: ${err.message}`);
+      }
+    }
+
+    // Update sync log
+    personaLog.syncedFiles.push(...newSynced);
+    personaLog.lastSynced = new Date().toISOString();
+    syncResults[persona] = { copied: newSynced.length };
+  }
+
+  saveSyncLog();
+
+  return res.status(200).json({
+    status: 'completed',
+    result: syncResults,
+    timestamp: new Date().toISOString(),
+  });
+});
