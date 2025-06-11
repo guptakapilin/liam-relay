@@ -1,269 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Liam Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    body{padding:20px}
-    .token-protected{display:none}
-    .nav-tabs .nav-link.active{background:#0d6efd;color:#fff}
-    pre,textarea{font-size:.9rem}
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h2 { margin-top: 30px; }
+    input, textarea, button, select { margin: 5px 0; padding: 8px; width: 100%; max-width: 500px; }
+    table { border-collapse: collapse; margin-top: 20px; width: 100%; max-width: 1000px; }
+    td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    #loginBox, #mainDashboard { max-width: 600px; margin: auto; }
+    #mainDashboard { display: none; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+  <div id="loginBox">
+    <h2>🔐 Liam Login</h2>
+    <input id="loginUser" placeholder="Username" />
+    <input id="loginPass" type="password" placeholder="Password" />
+    <button onclick="doLogin()">Login</button>
+    <div id="loginStatus"></div>
+  </div>
 
-<!-- ─── Login ─────────────────────────── -->
-<div id="login-section" class="container">
-  <h3 class="mb-3">Liam Panel Login</h3>
-  <input id="username" class="form-control mb-2" placeholder="Username"/>
-  <input id="password" type="password" class="form-control mb-2" placeholder="Password"/>
-  <button class="btn btn-primary" onclick="login()">Login</button>
-  <div id="login-error" class="text-danger mt-2"></div>
-</div>
+  <div id="mainDashboard">
+    <h2>📨 Send Email</h2>
+    <input id="emailTo" placeholder="To (email)" />
+    <input id="emailSubject" placeholder="Subject" />
+    <textarea id="emailBody" placeholder="Body" rows="5"></textarea>
+    <label><input type="checkbox" id="includeLink" onchange="toggleLinkField()"> Include Link</label>
+    <input type="text" id="linkField" class="hidden" placeholder="Paste optional link" />
+    <button onclick="sendEmail()">Send Email</button>
+    <div id="emailStatus"></div>
 
-<!-- ─── Dashboard ─────────────────────── -->
-<div id="dashboard-section" class="token-protected container">
-  <ul class="nav nav-tabs">
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#email">Send Email</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#launch">Launch Action</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">CLI Logs</a></li>
-  </ul>
+    <h2>🧠 Upload Memory</h2>
+    <input type="file" id="memoryFile" accept=".zip" />
+    <button onclick="uploadMemory()">Upload</button>
+    <div id="uploadStatus"></div>
 
-  <div class="tab-content">
-    <!-- ─ Memory Tab ─ -->
-    <div id="memory" class="tab-pane fade show active">
+    <h2>⚡ Quick Upload</h2>
+    <input type="file" id="quickZip" accept=".zip" />
+    <button onclick="quickUpload()">Quick Upload</button>
+    <div id="quickZipStatus"></div>
 
-      <h5 class="mt-3">Upload Memory ZIP (local picker)</h5>
-      <input id="memoryFile" type="file" class="form-control mb-2" accept=".zip"/>
-      <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
-      <div id="uploadStatus" class="small mt-2"></div>
+    <h2>📋 Memory Files</h2>
+    <button onclick="loadMemories()">🔄 Refresh List</button>
+    <table id="memoryTable">
+      <thead>
+        <tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-      <!-- Quick Upload -->
-      <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Quick Upload (Mail Export ZIP)</h6>
-        <input id="quickZip" type="file" accept=".zip" class="form-control mb-2"/>
-        <button class="btn btn-success" onclick="quickUpload()">Upload ZIP</button>
-        <div id="quickZipStatus" class="small mt-2"></div>
-      </div></div>
+    <h2>🧪 Health Check</h2>
+    <button onclick="checkHealth()">Run Check</button>
+    <pre id="healthStatus"></pre>
+  </div>
 
-      <!-- Fetch from Drive -->
-      <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Fetch ZIP (Google Drive Link)</h6>
-        <input id="driveZipUrl" type="url" class="form-control mb-2" placeholder="https://drive.google.com/..."/>
-        <button class="btn btn-success" onclick="fetchZip()">Fetch &amp; Ingest</button>
-        <div id="fetchStatus" class="small mt-2"></div>
-      </div></div>
+  <!-- ERUDA DEBUGGER FOR IPAD -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
 
-      <!-- Drive Sync -->
-      <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Drive Sync Overview</h6>
-        <p id="driveSummary" class="small">Loading…</p>
-        <button class="btn btn-primary" onclick="syncDrive()">Sync Pending ZIPs</button>
-        <div id="driveSyncStatus" class="small mt-2"></div>
-      </div></div>
+  <script>
+    const API = '';
+    const TOKEN_KEY = 'liamToken';
 
-      <!-- Backup -->
-      <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Backup Latest Memory → Drive</h6>
-        <button class="btn btn-warning" onclick="backupMem()">Backup Now</button>
-        <div id="backupStatus" class="small mt-2"></div>
-      </div></div>
+    function headers() {
+      return { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` };
+    }
 
-      <!-- Recall Link -->
-      <div class="card mt-4"><div class="card-body">
-        <h6 class="card-title">Generate Recall Link (paste in ChatGPT)</h6>
-        <textarea id="recallQuery" rows="2" class="form-control mb-2" placeholder="Type query text…"></textarea>
-        <button class="btn btn-info" onclick="genRecall()">Copy Link</button>
-        <div id="recallStatus" class="small mt-2"></div>
-      </div></div>
+    function toggleLinkField() {
+      const field = document.getElementById('linkField');
+      field.classList.toggle('hidden', !document.getElementById('includeLink').checked);
+    }
 
-      <!-- Parsed Files Table -->
-      <h5 class="mt-4">Parsed Files</h5>
-      <table class="table table-bordered" id="memoryTable">
-        <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
-    </div>
+    async function doLogin() {
+      const user = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
+      const r = await fetch(API + '/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user, pass })
+      });
+      const j = await r.json();
+      if (r.ok) {
+        localStorage.setItem(TOKEN_KEY, j.token);
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('mainDashboard').style.display = 'block';
+        loadMemories();
+      } else {
+        document.getElementById('loginStatus').innerText = j.error || 'Login failed';
+      }
+    }
 
-    <!-- ─ Email Tab ─ -->
-    <div id="email" class="tab-pane fade">
-      <h5 class="mt-3">Compose Email</h5>
-      <input id="emailTo" type="email" class="form-control mb-2" placeholder="Recipient Email"/>
-      <input id="emailSubject" class="form-control mb-2" placeholder="Subject"/>
-      <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
-      <div class="form-check mb-2">
-        <input id="includeLink" type="checkbox" class="form-check-input" onchange="toggleLinkBox()"/>
-        <label class="form-check-label" for="includeLink">Include Optional Link</label>
-      </div>
-      <input id="linkField" class="form-control mb-2" placeholder="https://…" style="display:none"/>
-      <button type="button" class="btn btn-primary" onclick="sendEmail()">Send Email</button>
-      <div id="emailStatus" class="small mt-2"></div>
-    </div>
+    async function sendEmail() {
+      const to = emailTo.value.trim();
+      const subject = emailSubject.value.trim();
+      const body = emailBody.value;
+      const includeL = includeLink.checked;
+      const link = linkField.value.trim();
+      if (!to || !subject || !body) {
+        emailStatus.innerText = '❌ Fill To/Subject/Body';
+        return;
+      }
+      const payload = { to, subject, body, includeLink: includeL, link };
+      try {
+        const r = await fetch(API + '/send-email', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        emailStatus.innerText = j.status || ('❌ ' + j.error);
+        if (r.ok) {
+          emailTo.value = ''; emailSubject.value = ''; emailBody.value = '';
+          includeLink.checked = false; linkField.value = ''; linkField.classList.add('hidden');
+        }
+      } catch (e) {
+        emailStatus.innerText = '❌ Error: ' + e.message;
+        console.error(e);
+      }
+    }
 
-    <!-- ─ Launch Tab ─ -->
-    <div id="launch" class="tab-pane fade">
-      <h5 class="mt-3">Run Quick Action</h5>
-      <select id="actionSelector" class="form-select mb-2">
-        <option value="ping">Ping Server</option>
-        <option value="send-email">Send Pre-filled Email</option>
-      </select>
-      <button class="btn btn-warning" onclick="runLaunchAction()">Launch</button>
-      <pre id="launchResult" class="small mt-3"></pre>
-    </div>
+    async function uploadMemory() {
+      const f = memoryFile.files[0];
+      if (!f) return alert('Choose ZIP');
+      const fd = new FormData(); fd.append('file', f);
+      const r = await fetch(API + '/upload-memory', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+        body: fd
+      });
+      const j = await r.json();
+      uploadStatus.innerText = j.status || j.error;
+      if (j.status) loadMemories();
+      memoryFile.value = '';
+    }
 
-    <!-- ─ Health Tab ─ -->
-    <div id="health" class="tab-pane fade">
-      <h5 class="mt-3">Backend Status</h5>
-      <pre id="healthStatus" class="small">Loading…</pre>
-      <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
-    </div>
+    async function quickUpload() {
+      const f = quickZip.files[0];
+      if (!f) return alert('Choose ZIP');
+      const fd = new FormData(); fd.append('file', f);
+      const r = await fetch(API + '/upload-memory', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+        body: fd
+      });
+      const j = await r.json();
+      quickZipStatus.innerText = j.status || j.error;
+      if (j.status) loadMemories();
+      quickZip.value = '';
+    }
 
-    <!-- ─ Logs Tab ─ -->
-    <div id="logs" class="tab-pane fade">
-      <h5 class="mt-3">Recent CLI Logs</h5>
-      <pre id="cliLogs" class="small">Loading…</pre>
-      <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
-    </div>
-  </div><!-- /.tab-content -->
-</div><!-- /dashboard -->
+    async function loadMemories() {
+      const r = await fetch(API + '/list-memories', { headers: headers() });
+      const d = await r.json();
+      const tbody = memoryTable.querySelector('tbody');
+      tbody.innerHTML = '';
+      d.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-/* ----- Helper Basics ----- */
-const API       = location.origin;
-const TOKEN_KEY = 'liam_token';
-const headers   = () => ({'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`});
-
-function showDashboard(){
-  login_section.style.display = 'none';
-  dashboard_section.style.display = 'block';
-  loadMemories(); loadHealth(); loadLogs(); loadDriveStatus();
-}
-async function login(){
-  const body ={username:username.value,password:password.value};
-  const r=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r.ok){const {token}=await r.json();localStorage.setItem(TOKEN_KEY,token);showDashboard();}
-  else login_error.innerText='Invalid credentials.';
-}
-
-/* ----- Memory Upload ----- */
-async function uploadMemory(){
-  const f=memoryFile.files[0]; if(!f) return alert('Choose ZIP');
-  const fd=new FormData(); fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
-  const j=await r.json();
-  if(j.status==='already_ingested') uploadStatus.innerText=`🔁 ${j.zip} already in memory`;
-  else  { uploadStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories();}
-  memoryFile.value='';
-}
-async function quickUpload(){
-  const f=quickZip.files[0]; if(!f) return alert('Choose ZIP');
-  const fd=new FormData(); fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
-  const j=await r.json();
-  if(j.status==='already_ingested') quickZipStatus.innerText=`🔁 ${j.zip} already in memory`;
-  else { quickZipStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories();}
-  quickZip.value='';
-}
-async function fetchZip(){
-  const url=driveZipUrl.value.trim(); if(!url) return;
-  const r=await fetch(API+'/fetch-zip',{method:'POST',headers:headers(),body:JSON.stringify({url})});
-  const j=await r.json();
-  if(j.status==='already_ingested') fetchStatus.innerText=`🔁 ${j.zip} already in memory`;
-  else { fetchStatus.innerText=j.status||('❌ '+j.error); if(j.status) loadMemories(); }
-  driveZipUrl.value='';
-}
-async function backupMem(){
-  backupStatus.innerText='⏳ backing up…';
-  const r=await fetch(API+'/backup-memory',{method:'POST',headers:headers()});
-  const j=await r.json();
-  backupStatus.innerText=j.status||('❌ '+j.error);
-}
-
-/* ----- Drive Sync ----- */
-async function loadDriveStatus(){
-  const r=await fetch(API+'/drive-status',{headers:headers()});
-  const j=await r.json();
-  if(j.error){ driveSummary.innerText='❌ Drive status error'; console.error(j.error); return;}
-  driveSummary.innerText=
-    `On Drive: ${j.done.length+j.pending.length}\nAlready ingested: ${j.done.length}\nPending: ${j.pending.length}`;
-}
-async function syncDrive(){
-  driveSyncStatus.innerText='⏳ Syncing…';
-  const r=await fetch(API+'/sync-drive',{method:'POST',headers:headers()});
-  const j=await r.json();
-  if(j.error){ driveSyncStatus.innerText='❌ '+j.error; console.error(j.error); return;}
-  driveSyncStatus.innerText=`✅ Imported ${j.imported} new ZIP(s)`;
-  loadMemories(); loadDriveStatus();
-}
-
-/* ----- Recall Link ----- */
-async function genRecall(){
-  const q=recallQuery.value.trim(); if(!q) return;
-  const r=await fetch(API+'/generate-recall-link',{method:'POST',headers:headers(),body:JSON.stringify({query:q})});
-  const j=await r.json();
-  if(j.link){ await navigator.clipboard.writeText(j.link); recallStatus.innerText='🔗 Link copied'; }
-  else       recallStatus.innerText='❌ '+(j.error||'error');
-  recallQuery.value='';
-}
-
-/* ----- Memory List ----- */
-async function loadMemories(){
-  const r=await fetch(API+'/list-memories',{headers:headers()});
-  const d=await r.json();
-  const table=document.getElementById('memoryTable');
-  const tbody=table.querySelector('tbody');
-  tbody.innerHTML='';
-  if(d.length===0){
-    tbody.innerHTML='<tr><td colspan="4" class="text-center">Listed 0 memory files</td></tr>';
-    return;
-  }
-  d.forEach(x=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${x.date}</td><td><a href="${x.path}" target="_blank">${x.name}</a></td><td>${x.path}</td><td>${x.status}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-/* ----- Email helpers ----- */
-function toggleLinkBox(){ linkField.style.display=includeLink.checked?'block':'none'; }
-async function sendEmail(){
-  const to=emailTo.value.trim(),subject=emailSubject.value.trim(),body=emailBody.value;
-  if(!to||!subject||!body){ emailStatus.innerText='❌ Fill To/Subject/Body'; return;}
-  const payload={
-    to, subject, body,
-    includeLink:includeLink.checked,
-    link       :linkField.value.trim()
-  };
-  try{
-    const r=await fetch(`${API}/send-email`,{method:'POST',headers:headers(),body:JSON.stringify(payload)});
-    const j=await r.json();
-    emailStatus.innerText=j.status||('❌ '+j.error);
-    if(r.ok){ emailTo.value=''; emailSubject.value=''; emailBody.value=''; includeLink.checked=false; linkField.value=''; linkField.style.display='none'; }
-  }catch(e){ emailStatus.innerText='❌ Network error'; console.error(e);}
-}
-
-/* ----- Launch Action ----- */
-async function runLaunchAction(){
-  const a=actionSelector.value;
-  const payload=a==='send-email'
-    ?{action:a,data:{to:'guptakapilin@gmail.com',subject:'Liam launch email',body:'Sent via launch-action tab',includeLink:true}}
-    :{action:a};
-  const r=await fetch(API+'/launch-action',{method:'POST',headers:headers(),body:JSON.stringify(payload)});
-  const j=await r.json(); launchResult.innerText=JSON.stringify(j,null,2);
-}
-
-/* ----- Health / Logs ----- */
-async function loadHealth(){ const j=await(await fetch(API+'/health',{headers:headers()})).json(); healthStatus.innerText=JSON.stringify(j,null,2);}
-async function loadLogs(){ const j=await(await fetch(API+'/cli-logs',{headers:headers()})).json(); cliLogs.innerText=j.logs.join('\n');}
-
-/* Auto-login */
-if(localStorage.getItem(TOKEN_KEY)) showDashboard();
-</script>
+    async function checkHealth() {
+      const r = await fetch(API + '/health', { headers: headers() });
+      const j = await r.json();
+      healthStatus.innerText = JSON.stringify(j, null, 2);
+    }
+  </script>
 </body>
 </html>
