@@ -171,18 +171,52 @@ async function sendEmail(){
 
 /* ---------- Memory Upload ---------- */
 async function uploadMemory(){
-  const f=memoryFile.files[0];if(!f)return alert('Choose ZIP');
-  const fd=new FormData();fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
-  const j=await r.json();uploadStatus.innerText=j.status||j.error;if(j.status)loadMemories();memoryFile.value='';
+  const f = memoryFile.files[0];
+  if (!f) return alert('Choose ZIP');
+
+  const fd = new FormData();
+  fd.append('file', f);
+
+  const r = await fetch(`${API}/upload-memory`, {
+    method : 'POST',
+    headers: { Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+    body   : fd
+  });
+  const j = await r.json();
+
+  if (j.status === 'already_ingested'){
+    uploadStatus.innerText = `🔁 ${j.zip} already in memory`;
+  } else {
+    uploadStatus.innerText = j.status || ('❌ '+j.error);
+    if (j.status) loadMemories();
+  }
+  memoryFile.value='';
 }
+
 async function quickUpload(){
-  const f=quickZip.files[0];if(!f)return alert('Choose ZIP');
-  const fd=new FormData();fd.append('file',f);
-  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
-  const j=await r.json();quickZipStatus.innerText=j.status||j.error;if(j.status)loadMemories();quickZip.value='';
+  const f = quickZip.files[0];
+  if (!f) return alert('Choose ZIP');
+
+  const fd = new FormData();
+  fd.append('file', f);
+
+  const r = await fetch(`${API}/upload-memory`, {
+    method : 'POST',
+    headers: { Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}` },
+    body   : fd
+  });
+  const j = await r.json();
+
+  if (j.status === 'already_ingested'){
+    quickZipStatus.innerText = `🔁 ${j.zip} already in memory`;
+  } else {
+    quickZipStatus.innerText = j.status || ('❌ '+j.error);
+    if (j.status) loadMemories();
+  }
+  quickZip.value='';
 }
-/* ---------- Drive ZIP Fetch ---------- */
+  
+  /* ---------- Drive ZIP Fetch ---------- */
 async function fetchZip(){
   const url=driveZipUrl.value.trim();if(!url)return;
   const r=await fetch(API+'/fetch-zip',{method:'POST',headers:headers(),body:JSON.stringify({url})});
