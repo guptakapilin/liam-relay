@@ -122,9 +122,11 @@ app.get('/list-memories', isAuthenticated, (req, res) => {
 
 // --- SEND EMAIL ---
 app.post('/send-email', isAuthenticated, async (req, res) => {
-  const { to, subject, body, includeLink } = req.body;
-  const emailBody = includeLink ? `${body}\n\n[View Link](https://example.com)` : body;
-
+  const { to, subject, body, includeLink, link } = req.body;
+const emailBody = includeLink && link
+  ? `${body}\n\nLink: ${link}`
+  : body;
+  
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
