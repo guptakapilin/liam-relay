@@ -1,8 +1,67 @@
 <!DOCTYPE html>
-<html>
-<head><title>Liam Control Panel</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Liam Control Panel</title>
+  <style>
+    body { font-family: Arial; padding: 30px; background: #f4f4f4; }
+    h1 { color: #333; }
+    input, button, select, textarea {
+      margin: 8px 0; padding: 8px;
+      font-size: 1em; width: 100%;
+    }
+    .box {
+      background: #fff; padding: 20px; margin-bottom: 20px;
+      border: 1px solid #ccc; border-radius: 5px;
+    }
+    .output { white-space: pre-wrap; background: #eee; padding: 10px; }
+  </style>
+</head>
 <body>
-  <h1>Welcome Kapil</h1>
-  <p>This is your Liam control panel (HTML test).</p>
+  <h1>Liam-Mailer v4.6 Control Panel</h1>
+  <div class="box">
+    <h3>/create-doc</h3>
+    <input type="text" id="template" placeholder="Enter template file name (e.g., dropshipping.txt)">
+    <button onclick="createDoc()">Create Document</button>
+    <div class="output" id="createDocResult"></div>
+  </div>
+  <div class="box">
+    <h3>/send-email</h3>
+    <input type="email" id="toEmail" placeholder="Recipient email">
+    <input type="text" id="driveLink" placeholder="Drive link (optional)">
+    <button onclick="sendEmail()">Send Email</button>
+    <div class="output" id="sendEmailResult"></div>
+  </div>
+  <div class="box">
+    <h3>/list-memories</h3>
+    <button onclick="listMemories()">List Memory Files</button>
+    <div class="output" id="memoriesList"></div>
+  </div>
+    <script>
+    async function createDoc() {
+      const template = document.getElementById("template").value;
+      const res = await fetch(`/create-doc?template=${template}`);
+      const data = await res.json();
+      document.getElementById("createDocResult").innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function sendEmail() {
+      const to = document.getElementById("toEmail").value;
+      const link = document.getElementById("driveLink").value;
+      const res = await fetch(`/send-email?to=${to}&link=${link}`);
+      const text = await res.text();
+      document.getElementById("sendEmailResult").innerText = text;
+    }
+
+    async function listMemories() {
+      const res = await fetch(`/list-memories`);
+      const data = await res.json();
+      let html = '';
+      data.files.forEach(file => {
+        html += `${file.name}\n${file.webViewLink}\nModified: ${file.modifiedTime}\n\n`;
+      });
+      document.getElementById("memoriesList").innerText = html;
+    }
+  </script>
 </body>
 </html>
