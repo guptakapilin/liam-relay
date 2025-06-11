@@ -1,217 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Liam Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    body { padding: 20px; }
-    .token-protected { display: none; }
-    .tab-content { margin-top: 20px; }
-    .nav-tabs .nav-link.active { background-color: #0d6efd; color: #fff; }
+    body{padding:20px}
+    .token-protected{display:none}
+    .nav-tabs .nav-link.active{background:#0d6efd;color:#fff}
+    pre,textarea{font-size:.9rem}
   </style>
 </head>
 <body>
-  <div id="login-section" class="container">
-    <h3 class="mb-3">Liam Panel Login</h3>
-    <div class="mb-3"><input type="text" id="username" class="form-control" placeholder="Username" /></div>
-    <div class="mb-3"><input type="password" id="password" class="form-control" placeholder="Password" /></div>
-    <button class="btn btn-primary" onclick="login()">Login</button>
-    <div id="login-error" class="text-danger mt-2"></div>
-  </div>
 
-  <div id="dashboard-section" class="token-protected container">
-    <ul class="nav nav-tabs">
-      <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#email">Send Email</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#launch">Launch Action</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health</a></li>
-      <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">CLI Logs</a></li>
-    </ul>
+<!-- ────────── Login ────────── -->
+<div id="login-section" class="container">
+  <h3 class="mb-3">Liam Panel Login</h3>
+  <input id="username" class="form-control mb-2" placeholder="Username"/>
+  <input id="password" type="password" class="form-control mb-2" placeholder="Password"/>
+  <button class="btn btn-primary" onclick="login()">Login</button>
+  <div id="login-error" class="text-danger mt-2"></div>
+</div>
 
-    <div class="tab-content">
+<!-- ────────── Dashboard ────────── -->
+<div id="dashboard-section" class="token-protected container">
+  <ul class="nav nav-tabs">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#memory">Memory</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#email">Send Email</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#launch">Launch Action</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#health">Health</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">CLI Logs</a></li>
+  </ul>
 
-      <!-- Memory Upload -->
-      <div class="tab-pane fade show active" id="memory">
-        <h5 class="mt-3">Upload Memory ZIP</h5>
-        <input type="file" id="memoryFile" class="form-control mb-2"/>
-        <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
-        <div id="uploadStatus" class="mt-2"></div>
-        <h5 class="mt-4">Parsed Files</h5>
-        <table class="table table-bordered" id="memoryTable">
-          <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
-        <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
-      </div>
+  <div class="tab-content">
 
-      <!-- Email Tab -->
-      <div class="tab-pane fade" id="email">
-        <h5 class="mt-3">Compose Email</h5>
-        <input type="email" id="emailTo" class="form-control mb-2" placeholder="Recipient Email" />
-        <input type="text" id="emailSubject" class="form-control mb-2" placeholder="Subject" />
-        <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
-        <div class="form-check mb-2">
-          <input type="checkbox" class="form-check-input" id="includeLink" />
-          <label class="form-check-label" for="includeLink">Include Optional Link</label>
-        </div>
-        <button class="btn btn-primary" onclick="sendEmail()">Send Email</button>
-        <div id="emailStatus" class="mt-2"></div>
-      </div>
+    <!-- ───── Memory Tab ───── -->
+    <div id="memory" class="tab-pane fade show active">
+      <h5 class="mt-3">Upload Memory ZIP (local picker)</h5>
+      <input id="memoryFile" type="file" class="form-control mb-2" accept=".zip"/>
+      <button class="btn btn-success" onclick="uploadMemory()">Upload</button>
+      <div id="uploadStatus" class="small mt-2"></div>
 
-      <!-- Launch Action Tab -->
-      <div class="tab-pane fade" id="launch">
-        <h5 class="mt-3">Run Quick Action</h5>
-        <select id="actionSelector" class="form-select mb-2">
-          <option value="ping">Ping Server</option>
-          <option value="send-email">Send Predefined Email</option>
-        </select>
-        <button class="btn btn-warning" onclick="runLaunchAction()">Launch</button>
-        <pre id="launchResult" class="mt-3"></pre>
-      </div>
+      <!-- Quick Upload (share-sheet) -->
+      <div class="card mt-4"><div class="card-body">
+        <h6 class="card-title">Quick Upload (Mail Export ZIP)</h6>
+        <input id="quickZip" type="file" accept=".zip" class="form-control mb-2"/>
+        <button class="btn btn-success" onclick="quickUpload()">Upload ZIP</button>
+        <div id="quickZipStatus" class="small mt-2"></div>
+      </div></div>
 
-      <!-- Health -->
-      <div class="tab-pane fade" id="health">
-        <h5 class="mt-3">Backend Status</h5>
-        <pre id="healthStatus">Loading...</pre>
-        <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
-      </div>
+      <!-- Fetch from Google Drive -->
+      <div class="card mt-4"><div class="card-body">
+        <h6 class="card-title">Fetch ZIP (Google Drive Link)</h6>
+        <input id="driveZipUrl" type="url" class="form-control mb-2" placeholder="https://drive.google.com/..."/>
+        <button class="btn btn-success" onclick="fetchZip()">Fetch &amp; Ingest</button>
+        <div id="fetchStatus" class="small mt-2"></div>
+      </div></div>
 
-      <!-- Logs -->
-      <div class="tab-pane fade" id="logs">
-        <h5 class="mt-3">Recent CLI Logs</h5>
-        <pre id="cliLogs">Loading...</pre>
-        <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
-      </div>
+      <!-- Backup to Drive -->
+      <div class="card mt-4"><div class="card-body">
+        <h6 class="card-title">Backup Latest Memory → Drive</h6>
+        <button class="btn btn-warning" onclick="backupMem()">Backup Now</button>
+        <div id="backupStatus" class="small mt-2"></div>
+      </div></div>
 
+      <!-- Recall Link Generator -->
+      <div class="card mt-4"><div class="card-body">
+        <h6 class="card-title">Generate Recall Link (paste into ChatGPT)</h6>
+        <textarea id="recallQuery" rows="2" class="form-control mb-2" placeholder="Type query text…"></textarea>
+        <button class="btn btn-info" onclick="genRecall()">Copy Link</button>
+        <div id="recallStatus" class="small mt-2"></div>
+      </div></div>
+
+      <!-- Parsed Files Table -->
+      <h5 class="mt-4">Parsed Files</h5>
+      <table class="table table-bordered" id="memoryTable">
+        <thead><tr><th>Date</th><th>Name</th><th>Path</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button class="btn btn-secondary" onclick="loadMemories()">Refresh List</button>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    const API = location.origin;
-    const TOKEN_KEY = 'liam_token';
-    const getToken = () => localStorage.getItem(TOKEN_KEY);
-    const headers = () => ({
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`
-    });
+    <!-- ───── Email Tab ───── -->
+    <div id="email" class="tab-pane fade">
+      <h5 class="mt-3">Compose Email</h5>
+      <input id="emailTo" type="email" class="form-control mb-2" placeholder="Recipient Email"/>
+      <input id="emailSubject" class="form-control mb-2" placeholder="Subject"/>
+      <textarea id="emailBody" rows="5" class="form-control mb-2" placeholder="Body Text"></textarea>
+      <div class="form-check mb-2">
+        <input id="includeLink" type="checkbox" class="form-check-input"/>
+        <label class="form-check-label" for="includeLink">Include Optional Link</label>
+      </div>
+      <button class="btn btn-primary" onclick="sendEmail()">Send Email</button>
+      <div id="emailStatus" class="small mt-2"></div>
+    </div>
 
-    const showDashboard = () => {
-      document.getElementById('login-section').style.display = 'none';
-      document.getElementById('dashboard-section').style.display = 'block';
-      loadMemories(); loadHealth(); loadLogs();
-    };
+    <!-- ───── Launch Action Tab ───── -->
+    <div id="launch" class="tab-pane fade">
+      <h5 class="mt-3">Run Quick Action</h5>
+      <select id="actionSelector" class="form-select mb-2">
+        <option value="ping">Ping Server</option>
+        <option value="send-email">Send Pre-filled Email</option>
+      </select>
+      <button class="btn btn-warning" onclick="runLaunchAction()">Launch</button>
+      <pre id="launchResult" class="small mt-3"></pre>
+    </div>
 
-    async function login() {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const res = await fetch(`${API}/auth`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ username, password })
-      });
+    <!-- ───── Health Tab ───── -->
+    <div id="health" class="tab-pane fade">
+      <h5 class="mt-3">Backend Status</h5>
+      <pre id="healthStatus" class="small">Loading…</pre>
+      <button class="btn btn-secondary" onclick="loadHealth()">Refresh</button>
+    </div>
 
-      if (res.ok) {
-        const { token } = await res.json();
-        localStorage.setItem(TOKEN_KEY, token);
-        showDashboard();
-      } else {
-        document.getElementById('login-error').innerText = 'Invalid credentials.';
-      }
-    }
+    <!-- ───── Logs Tab ───── -->
+    <div id="logs" class="tab-pane fade">
+      <h5 class="mt-3">Recent CLI Logs</h5>
+      <pre id="cliLogs" class="small">Loading…</pre>
+      <button class="btn btn-secondary" onclick="loadLogs()">Refresh</button>
+    </div>
 
-    async function uploadMemory() {
-      const file = document.getElementById('memoryFile').files[0];
-      if (!file) return alert('Please choose a file.');
+  </div><!-- /.tab-content -->
+</div><!-- /#dashboard-section -->
 
-      const formData = new FormData();
-      formData.append('file', file);
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ---------- Helper Basics ---------- */
+const API            = location.origin;
+const TOKEN_KEY      = 'liam_token';
+const headers        = () => ({'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`});
+const showDashboard  = () => {document.getElementById('login-section').style.display='none';document.getElementById('dashboard-section').style.display='block';loadMemories();loadHealth();loadLogs();};
 
-      const res = await fetch(`${API}/upload-memory`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData
-      });
+async function login(){
+  const body={username:username.value,password:password.value};
+  const r=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(r.ok){const {token}=await r.json();localStorage.setItem(TOKEN_KEY,token);showDashboard();}
+  else login_error.innerText='Invalid credentials.';
+}
 
-      const result = await res.json();
-      document.getElementById('uploadStatus').innerText = result.status || result.error;
-      loadMemories();
-    }
+/* ---------- Memory Upload ---------- */
+async function uploadMemory(){
+  const f=memoryFile.files[0];if(!f)return alert('Choose ZIP');
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
+  const j=await r.json();uploadStatus.innerText=j.status||j.error;if(j.status)loadMemories();memoryFile.value='';
+}
+async function quickUpload(){
+  const f=quickZip.files[0];if(!f)return alert('Choose ZIP');
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch(API+'/upload-memory',{method:'POST',headers:{Authorization:`Bearer ${localStorage.getItem(TOKEN_KEY)}`},body:fd});
+  const j=await r.json();quickZipStatus.innerText=j.status||j.error;if(j.status)loadMemories();quickZip.value='';
+}
+/* ---------- Drive ZIP Fetch ---------- */
+async function fetchZip(){
+  const url=driveZipUrl.value.trim();if(!url)return;
+  const r=await fetch(API+'/fetch-zip',{method:'POST',headers:headers(),body:JSON.stringify({url})});
+  const j=await r.json();fetchStatus.innerText=j.status||j.error;if(j.status)loadMemories();driveZipUrl.value='';
+}
+/* ---------- Backup ---------- */
+async function backupMem(){
+  const r=await fetch(API+'/backup-memory',{method:'POST',headers:headers()});
+  const j=await r.json();backupStatus.innerText=j.status||j.error;
+}
+/* ---------- Recall Link ---------- */
+async function genRecall(){
+  const q=recallQuery.value.trim();if(!q)return;
+  const r=await fetch(API+'/generate-recall-link',{method:'POST',headers:headers(),body:JSON.stringify({query:q})});
+  const j=await r.json();
+  if(j.link){await navigator.clipboard.writeText(j.link);recallStatus.innerText='🔗 Link copied to clipboard';}
+  else recallStatus.innerText='❌ '+(j.error||'error');
+  recallQuery.value='';
+}
+/* ---------- Memory List ---------- */
+async function loadMemories(){
+  const r=await fetch(API+'/list-memories',{headers:headers()});const d=await r.json();
+  const tbody=memoryTable.querySelector('tbody');tbody.innerHTML='';
+  d.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;tbody.appendChild(tr)});
+}
+/* ---------- Email ---------- */
+async function sendEmail(){
+  const to=emailTo.value,subject=emailSubject.value,body=emailBody.value,includeLink=includeLink.checked;
+  const r=await fetch(API+'/send-email',{method:'POST',headers:headers(),body:JSON.stringify({to,subject,body,includeLink})});
+  const j=await r.json();emailStatus.innerText=j.status||j.error;
+  emailTo.value='';emailSubject.value='';emailBody.value='';includeLink.checked=false;
+}
+/* ---------- Launch-Action ---------- */
+async function runLaunchAction(){
+  const a=actionSelector.value;
+  let payload={action:a};
+  if(a==='send-email'){payload.data={to:'guptakapilin@gmail.com',subject:'Liam Launch Email',body:'Sent via launch-action tab',includeLink:true};}
+  const r=await fetch(API+'/launch-action',{method:'POST',headers:headers(),body:JSON.stringify(payload)});
+  const j=await r.json();launchResult.innerText=JSON.stringify(j,null,2);
+}
+/* ---------- Health / Logs ---------- */
+async function loadHealth(){const j=await(await fetch(API+'/health',{headers:headers()})).json();healthStatus.innerText=JSON.stringify(j,null,2);}
+async function loadLogs(){const j=await(await fetch(API+'/cli-logs',{headers:headers()})).json();cliLogs.innerText=j.logs.join('\n');}
 
-    async function loadMemories() {
-      const res = await fetch(`${API}/list-memories`, { headers: headers() });
-      const data = await res.json();
-      const tbody = document.querySelector('#memoryTable tbody');
-      tbody.innerHTML = '';
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.date}</td><td>${row.name}</td><td>${row.path}</td><td>${row.status}</td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function sendEmail() {
-      const to = document.getElementById('emailTo').value;
-      const subject = document.getElementById('emailSubject').value;
-      const body = document.getElementById('emailBody').value;
-      const includeLink = document.getElementById('includeLink').checked;
-
-      const res = await fetch(`${API}/send-email`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ to, subject, body, includeLink })
-      });
-
-      const result = await res.json();
-      document.getElementById('emailStatus').innerText = result.status || result.error;
-
-      // 🧼 Clear form on success or error
-      if (res.ok || res.status >= 400) {
-        document.getElementById('emailTo').value = '';
-        document.getElementById('emailSubject').value = '';
-        document.getElementById('emailBody').value = '';
-        document.getElementById('includeLink').checked = false;
-      }
-    }
-
-    async function runLaunchAction() {
-      const selected = document.getElementById('actionSelector').value;
-      let payload = { action: selected };
-
-      if (selected === 'send-email') {
-        payload.data = {
-          to: "guptakapilin@gmail.com",
-          subject: "Liam Launch Email",
-          body: "This email was sent via launch-action tab.",
-          includeLink: true
-        };
-      }
-
-      const res = await fetch(`${API}/launch-action`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      document.getElementById('launchResult').innerText = JSON.stringify(result, null, 2);
-    }
-
-    async function loadHealth() {
-      const res = await fetch(`${API}/health`, { headers: headers() });
-      const data = await res.json();
-      document.getElementById('healthStatus').innerText = JSON.stringify(data, null, 2);
-    }
-
-    async function loadLogs() {
-      const res = await fetch(`${API}/cli-logs`, { headers: headers() });
-      const data = await res.json();
-      document.getElementById('cliLogs').innerText = data.logs.join('\n');
-    }
-
-    if (getToken()) showDashboard();
-  </script>
+/* ---------- Auto-login if token exists ---------- */
+if(localStorage.getItem(TOKEN_KEY)) showDashboard();
+</script>
 </body>
 </html>
